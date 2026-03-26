@@ -33,3 +33,7 @@ ExportedObj/
 
 # Unity generated files
 SysInfo.txt
+
+.vsconfig
+*.slnx
+
