@@ -1,17 +1,26 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour
 {
     [Header("Scene Names")]
     [SerializeField] private string gameSceneName = "Game";
 
-    // Will load the Game scene in a later step.
+    // Called by the Play button.
     public void PlayGame()
     {
+        if (string.IsNullOrWhiteSpace(gameSceneName))
+        {
+            Debug.LogError("MainMenuController: gameSceneName is empty.");
+            return;
+        }
+
+        SceneManager.LoadScene(gameSceneName);
     }
 
-    // Will quit the application in a later step.
+    // Called by the Quit button.
     public void QuitGame()
     {
+        Application.Quit();
     }
 }
