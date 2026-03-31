@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameUIController : MonoBehaviour
@@ -7,6 +8,7 @@ public class GameUIController : MonoBehaviour
     [SerializeField] private Text scoreText;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private string scorePrefix = "Score: ";
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private GameManager gameManager;
     private int currentScore;
@@ -35,6 +37,23 @@ public class GameUIController : MonoBehaviour
         {
             gameOverPanel.SetActive(show);
         }
+    }
+
+    public void RestartGame()
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(activeScene.name);
+    }
+
+    public void BackToMenu()
+    {
+        if (string.IsNullOrWhiteSpace(mainMenuSceneName))
+        {
+            Debug.LogError("GameUIController: mainMenuSceneName is empty.");
+            return;
+        }
+
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 
     public int GetCurrentScore()

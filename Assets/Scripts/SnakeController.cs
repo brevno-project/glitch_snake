@@ -80,19 +80,38 @@ public class SnakeController : MonoBehaviour
         {
             moveTimer -= interval;
             MoveOneCell();
+
+            if (gameManager.IsGameOver())
+            {
+                return;
+            }
         }
     }
 
     private void MoveOneCell()
     {
         currentDirection = nextDirection;
-        currentGridPosition += currentDirection;
+
+        Vector2Int nextHeadPosition = currentGridPosition + currentDirection;
+        if (IsOutsideBoard(nextHeadPosition))
+        {
+            gameManager.TriggerGameOver();
+            return;
+        }
+
+        currentGridPosition = nextHeadPosition;
 
         occupiedCells.Insert(0, currentGridPosition);
         occupiedCells.RemoveAt(occupiedCells.Count - 1);
 
         transform.position = new Vector3(currentGridPosition.x, currentGridPosition.y, 0f);
         UpdateBodySegments();
+
+        if (IsSelfCollision())
+        {
+            gameManager.TriggerGameOver();
+            return;
+        }
 
         gameManager.HandleSnakeMoved(currentGridPosition);
     }
@@ -172,6 +191,27 @@ public class SnakeController : MonoBehaviour
     public IReadOnlyList<Vector2Int> GetOccupiedCells()
     {
         return occupiedCells;
+    }
+
+    private bool IsOutsideBoard(Vector2Int gridPosition)
+    {
+        return gridPosition.x < 0
+            || gridPosition.x >= gameManager.GetBoardWidth()
+            || gridPosition.y < 0
+            || gridPosition.y >= gameManager.GetBoardHeight();
+    }
+
+    private bool IsSelfCollision()
+    {
+        for (int i = 1; i < occupiedCells.Count; i++)
+        {
+            if (occupiedCells[i] == currentGridPosition)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void UpdateBodySegments()
