@@ -5,18 +5,38 @@ public class GameUIController : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private GameObject gameOverPanel;
 
-    private void Start()
+    private GameManager gameManager;
+    private int currentScore;
+
+    public void Initialize(GameManager manager)
     {
-        // Initial UI state setup will be implemented in a later step.
+        gameManager = manager;
+        currentScore = 0;
+
+        ShowGameOver(false);
     }
 
     public void SetScore(int score)
     {
-        // Score text update will be implemented later.
+        currentScore = score;
+        // Score text binding will be added in a later step.
     }
 
     public void ShowGameOver(bool show)
     {
-        // Game over panel visibility will be implemented later.
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(show);
+        }
+    }
+
+    public int GetCurrentScore()
+    {
+        return currentScore;
+    }
+
+    public GameManager GetGameManager()
+    {
+        return gameManager;
     }
 }

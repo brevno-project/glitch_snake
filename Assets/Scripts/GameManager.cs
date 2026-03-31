@@ -13,24 +13,100 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameUIController gameUIController;
 
     private bool isGameOver;
+    private int score;
 
     private void Start()
     {
-        // Initialization flow will be implemented in a later step.
+        InitializeSceneFoundation();
+    }
+
+    private void InitializeSceneFoundation()
+    {
+        if (!ValidateReferences())
+        {
+            return;
+        }
+
+        isGameOver = false;
+        score = 0;
+
+        snakeController.Initialize(this);
+        foodSpawner.Initialize(this, boardWidth, boardHeight);
+        gameUIController.Initialize(this);
+
+        gameUIController.SetScore(score);
+        gameUIController.ShowGameOver(false);
+    }
+
+    private bool ValidateReferences()
+    {
+        bool isValid = true;
+
+        if (snakeController == null)
+        {
+            Debug.LogError("GameManager: SnakeController reference is missing.");
+            isValid = false;
+        }
+
+        if (foodSpawner == null)
+        {
+            Debug.LogError("GameManager: FoodSpawner reference is missing.");
+            isValid = false;
+        }
+
+        if (gameUIController == null)
+        {
+            Debug.LogError("GameManager: GameUIController reference is missing.");
+            isValid = false;
+        }
+
+        return isValid;
     }
 
     public void HandleFoodEaten()
     {
-        // Score and growth handling will be implemented later.
+        if (isGameOver)
+        {
+            return;
+        }
+
+        score += 1;
+        gameUIController.SetScore(score);
     }
 
     public void TriggerGameOver()
     {
-        // Game over flow will be implemented later.
+        if (isGameOver)
+        {
+            return;
+        }
+
+        isGameOver = true;
+        gameUIController.ShowGameOver(true);
     }
 
     public bool IsGameOver()
     {
         return isGameOver;
+    }
+
+    public int GetScore()
+    {
+        return score;
+    }
+
+    public int GetBoardWidth()
+    {
+        return boardWidth;
+    }
+
+    public int GetBoardHeight()
+    {
+        return boardHeight;
+    }
+
+    public float GetMoveInterval()
+    {
+        return moveInterval;
     }
 }
