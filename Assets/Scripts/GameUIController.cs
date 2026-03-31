@@ -1,9 +1,12 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameUIController : MonoBehaviour
 {
     [Header("UI References")]
+    [SerializeField] private Text scoreText;
     [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private string scorePrefix = "Score: ";
 
     private GameManager gameManager;
     private int currentScore;
@@ -19,7 +22,11 @@ public class GameUIController : MonoBehaviour
     public void SetScore(int score)
     {
         currentScore = score;
-        // Score text binding will be added in a later step.
+
+        if (scoreText != null)
+        {
+            scoreText.text = scorePrefix + currentScore;
+        }
     }
 
     public void ShowGameOver(bool show)

@@ -36,6 +36,8 @@ public class GameManager : MonoBehaviour
 
         gameUIController.SetScore(score);
         gameUIController.ShowGameOver(false);
+
+        SpawnFoodForCurrentSnake();
     }
 
     private bool ValidateReferences()
@@ -74,6 +76,23 @@ public class GameManager : MonoBehaviour
         gameUIController.SetScore(score);
     }
 
+    public void HandleSnakeMoved(Vector2Int headGridPosition)
+    {
+        if (isGameOver)
+        {
+            return;
+        }
+
+        if (!foodSpawner.IsFoodAtPosition(headGridPosition))
+        {
+            return;
+        }
+
+        snakeController.Grow();
+        HandleFoodEaten();
+        SpawnFoodForCurrentSnake();
+    }
+
     public void TriggerGameOver()
     {
         if (isGameOver)
@@ -108,5 +127,10 @@ public class GameManager : MonoBehaviour
     public float GetMoveInterval()
     {
         return moveInterval;
+    }
+
+    private void SpawnFoodForCurrentSnake()
+    {
+        foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
     }
 }

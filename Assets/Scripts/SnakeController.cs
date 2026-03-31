@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,9 +14,14 @@ public class SnakeController : MonoBehaviour
     private Vector2Int nextDirection;
     private float moveTimer;
 
+    private readonly List<Vector2Int> occupiedCells = new List<Vector2Int>();
+    private readonly List<Transform> bodySegments = new List<Transform>();
+    private SpriteRenderer headSpriteRenderer;
+
     public void Initialize(GameManager manager)
     {
         gameManager = manager;
+        headSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
         ResetToStart();
     }
 
@@ -25,6 +31,10 @@ public class SnakeController : MonoBehaviour
         currentDirection = GetSafeStartDirection();
         nextDirection = currentDirection;
         moveTimer = 0f;
+
+        ClearBodySegments();
+        occupiedCells.Clear();
+        occupiedCells.Add(currentGridPosition);
 
         // For now we place the root object at the starting grid position.
         transform.position = new Vector3(currentGridPosition.x, currentGridPosition.y, 0f);
@@ -77,7 +87,14 @@ public class SnakeController : MonoBehaviour
     {
         currentDirection = nextDirection;
         currentGridPosition += currentDirection;
+
+        occupiedCells.Insert(0, currentGridPosition);
+        occupiedCells.RemoveAt(occupiedCells.Count - 1);
+
         transform.position = new Vector3(currentGridPosition.x, currentGridPosition.y, 0f);
+        UpdateBodySegments();
+
+        gameManager.HandleSnakeMoved(currentGridPosition);
     }
 
     private void TrySetNextDirection(Vector2Int requestedDirection)
@@ -127,7 +144,14 @@ public class SnakeController : MonoBehaviour
 
     public void Grow()
     {
-        // Body growth will be implemented later.
+        if (occupiedCells.Count == 0)
+        {
+            return;
+        }
+
+        Vector2Int tailCell = occupiedCells[occupiedCells.Count - 1];
+        occupiedCells.Add(tailCell);
+        UpdateBodySegments();
     }
 
     public Vector2Int GetHeadGridPosition()
@@ -143,5 +167,63 @@ public class SnakeController : MonoBehaviour
     public GameManager GetGameManager()
     {
         return gameManager;
+    }
+
+    public IReadOnlyList<Vector2Int> GetOccupiedCells()
+    {
+        return occupiedCells;
+    }
+
+    private void UpdateBodySegments()
+    {
+        int requiredCount = Mathf.Max(0, occupiedCells.Count - 1);
+
+        while (bodySegments.Count < requiredCount)
+        {
+            bodySegments.Add(CreateBodySegment(bodySegments.Count + 1));
+        }
+
+        while (bodySegments.Count > requiredCount)
+        {
+            int lastIndex = bodySegments.Count - 1;
+            Destroy(bodySegments[lastIndex].gameObject);
+            bodySegments.RemoveAt(lastIndex);
+        }
+
+        for (int i = 0; i < bodySegments.Count; i++)
+        {
+            Vector2Int bodyCell = occupiedCells[i + 1];
+            bodySegments[i].position = new Vector3(bodyCell.x, bodyCell.y, 0f);
+        }
+    }
+
+    private Transform CreateBodySegment(int index)
+    {
+        GameObject segmentObject = new GameObject("BodySegment_" + index);
+        segmentObject.transform.SetParent(transform.parent);
+
+        if (headSpriteRenderer != null)
+        {
+            SpriteRenderer segmentRenderer = segmentObject.AddComponent<SpriteRenderer>();
+            segmentRenderer.sprite = headSpriteRenderer.sprite;
+            segmentRenderer.color = headSpriteRenderer.color;
+            segmentRenderer.sortingLayerID = headSpriteRenderer.sortingLayerID;
+            segmentRenderer.sortingOrder = headSpriteRenderer.sortingOrder - 1;
+        }
+
+        return segmentObject.transform;
+    }
+
+    private void ClearBodySegments()
+    {
+        for (int i = 0; i < bodySegments.Count; i++)
+        {
+            if (bodySegments[i] != null)
+            {
+                Destroy(bodySegments[i].gameObject);
+            }
+        }
+
+        bodySegments.Clear();
     }
 }
