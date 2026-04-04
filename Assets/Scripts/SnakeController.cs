@@ -36,8 +36,7 @@ public class SnakeController : MonoBehaviour
         occupiedCells.Clear();
         occupiedCells.Add(currentGridPosition);
 
-        // For now we place the root object at the starting grid position.
-        transform.position = new Vector3(currentGridPosition.x, currentGridPosition.y, 0f);
+        transform.position = GridToWorld(currentGridPosition);
     }
 
     private void Update()
@@ -104,7 +103,7 @@ public class SnakeController : MonoBehaviour
         occupiedCells.Insert(0, currentGridPosition);
         occupiedCells.RemoveAt(occupiedCells.Count - 1);
 
-        transform.position = new Vector3(currentGridPosition.x, currentGridPosition.y, 0f);
+        transform.position = GridToWorld(currentGridPosition);
         UpdateBodySegments();
 
         if (IsSelfCollision())
@@ -233,8 +232,13 @@ public class SnakeController : MonoBehaviour
         for (int i = 0; i < bodySegments.Count; i++)
         {
             Vector2Int bodyCell = occupiedCells[i + 1];
-            bodySegments[i].position = new Vector3(bodyCell.x, bodyCell.y, 0f);
+            bodySegments[i].position = GridToWorld(bodyCell);
         }
+    }
+
+    private Vector3 GridToWorld(Vector2Int gridPosition)
+    {
+        return gameManager.GridToWorldPosition(gridPosition);
     }
 
     private Transform CreateBodySegment(int index)

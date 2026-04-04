@@ -42,7 +42,7 @@ public class FoodSpawner : MonoBehaviour
         currentFoodGridPosition = spawnCell;
         currentFoodInstance = Instantiate(
             foodPrefab,
-            new Vector3(spawnCell.x, spawnCell.y, 0f),
+            gameManager.GridToWorldPosition(spawnCell),
             Quaternion.identity,
             transform
         );

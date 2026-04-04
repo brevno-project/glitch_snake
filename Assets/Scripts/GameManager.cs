@@ -129,8 +129,39 @@ public class GameManager : MonoBehaviour
         return moveInterval;
     }
 
+    public Vector3 GridToWorldPosition(Vector2Int gridPosition)
+    {
+        Vector2 offset = GetBoardWorldOffset();
+        return new Vector3(gridPosition.x + offset.x, gridPosition.y + offset.y, 0f);
+    }
+
+    private Vector2 GetBoardWorldOffset()
+    {
+        // Keeps the logical board centered around world (0,0).
+        return new Vector2(
+            -((boardWidth - 1) * 0.5f),
+            -((boardHeight - 1) * 0.5f)
+        );
+    }
+
     private void SpawnFoodForCurrentSnake()
     {
         foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (boardWidth <= 0 || boardHeight <= 0)
+        {
+            return;
+        }
+
+        Vector3 minCell = GridToWorldPosition(new Vector2Int(0, 0));
+        Vector3 maxCell = GridToWorldPosition(new Vector2Int(boardWidth - 1, boardHeight - 1));
+        Vector3 center = (minCell + maxCell) * 0.5f;
+        Vector3 size = new Vector3(boardWidth, boardHeight, 0.1f);
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireCube(center, size);
     }
 }
