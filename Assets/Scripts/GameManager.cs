@@ -11,6 +11,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool fitCameraToBoardOnStart = true;
     [SerializeField] private float cameraPadding = 0.5f;
 
+    [Header("Border Visual")]
+    [SerializeField] private bool showBoardBorder = true;
+    [SerializeField] private Color borderColor = Color.white;
+    [SerializeField] private float borderWidth = 0.08f;
+    [SerializeField] private int borderSortingOrder = 20;
+
     [Header("Scene References")]
     [SerializeField] private SnakeController snakeController;
     [SerializeField] private FoodSpawner foodSpawner;
@@ -18,10 +24,12 @@ public class GameManager : MonoBehaviour
 
     private bool isGameOver;
     private int score;
+    private LineRenderer boardBorderLine;
 
     private void Start()
     {
         FitMainCameraToBoard();
+        SetupBoardBorderVisual();
         InitializeSceneFoundation();
     }
 
@@ -175,13 +183,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        Vector3 minCellCenter = GridToWorldPosition(new Vector2Int(0, 0));
-        Vector3 maxCellCenter = GridToWorldPosition(new Vector2Int(boardWidth - 1, boardHeight - 1));
-
-        float boardMinX = minCellCenter.x - 0.5f;
-        float boardMaxX = maxCellCenter.x + 0.5f;
-        float boardMinY = minCellCenter.y - 0.5f;
-        float boardMaxY = maxCellCenter.y + 0.5f;
+        GetBoardWorldBounds(out float boardMinX, out float boardMaxX, out float boardMinY, out float boardMaxY);
 
         float halfWidth = ((boardMaxX - boardMinX) * 0.5f) + cameraPadding;
         float halfHeight = ((boardMaxY - boardMinY) * 0.5f) + cameraPadding;
@@ -196,6 +198,60 @@ public class GameManager : MonoBehaviour
         targetCamera.transform.position = cameraPosition;
     }
 
+    private void SetupBoardBorderVisual()
+    {
+        if (!showBoardBorder || boardWidth <= 0 || boardHeight <= 0)
+        {
+            if (boardBorderLine != null)
+            {
+                boardBorderLine.enabled = false;
+            }
+            return;
+        }
+
+        if (boardBorderLine == null)
+        {
+            GameObject borderObject = new GameObject("BoardBorder");
+            borderObject.transform.SetParent(transform, false);
+
+            boardBorderLine = borderObject.AddComponent<LineRenderer>();
+            boardBorderLine.useWorldSpace = true;
+            boardBorderLine.loop = true;
+            boardBorderLine.positionCount = 4;
+
+            Shader lineShader = Shader.Find("Sprites/Default");
+            if (lineShader != null)
+            {
+                boardBorderLine.material = new Material(lineShader);
+            }
+        }
+
+        boardBorderLine.enabled = true;
+        boardBorderLine.startWidth = borderWidth;
+        boardBorderLine.endWidth = borderWidth;
+        boardBorderLine.startColor = borderColor;
+        boardBorderLine.endColor = borderColor;
+        boardBorderLine.sortingOrder = borderSortingOrder;
+
+        GetBoardWorldBounds(out float boardMinX, out float boardMaxX, out float boardMinY, out float boardMaxY);
+
+        boardBorderLine.SetPosition(0, new Vector3(boardMinX, boardMinY, 0f));
+        boardBorderLine.SetPosition(1, new Vector3(boardMaxX, boardMinY, 0f));
+        boardBorderLine.SetPosition(2, new Vector3(boardMaxX, boardMaxY, 0f));
+        boardBorderLine.SetPosition(3, new Vector3(boardMinX, boardMaxY, 0f));
+    }
+
+    private void GetBoardWorldBounds(out float boardMinX, out float boardMaxX, out float boardMinY, out float boardMaxY)
+    {
+        Vector3 minCellCenter = GridToWorldPosition(new Vector2Int(0, 0));
+        Vector3 maxCellCenter = GridToWorldPosition(new Vector2Int(boardWidth - 1, boardHeight - 1));
+
+        boardMinX = minCellCenter.x - 0.5f;
+        boardMaxX = maxCellCenter.x + 0.5f;
+        boardMinY = minCellCenter.y - 0.5f;
+        boardMaxY = maxCellCenter.y + 0.5f;
+    }
+
     private void SpawnFoodForCurrentSnake()
     {
         foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
@@ -208,10 +264,9 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        Vector3 minCell = GridToWorldPosition(new Vector2Int(0, 0));
-        Vector3 maxCell = GridToWorldPosition(new Vector2Int(boardWidth - 1, boardHeight - 1));
-        Vector3 center = (minCell + maxCell) * 0.5f;
-        Vector3 size = new Vector3(boardWidth, boardHeight, 0.1f);
+        GetBoardWorldBounds(out float boardMinX, out float boardMaxX, out float boardMinY, out float boardMaxY);
+        Vector3 center = new Vector3((boardMinX + boardMaxX) * 0.5f, (boardMinY + boardMaxY) * 0.5f, 0f);
+        Vector3 size = new Vector3(boardMaxX - boardMinX, boardMaxY - boardMinY, 0.1f);
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireCube(center, size);
