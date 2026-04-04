@@ -7,6 +7,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int boardHeight = 20;
     [SerializeField] private float moveInterval = 0.15f;
 
+    [Header("Camera")]
+    [SerializeField] private bool fitCameraToBoardOnStart = true;
+    [SerializeField] private float cameraPadding = 0.5f;
+
     [Header("Scene References")]
     [SerializeField] private SnakeController snakeController;
     [SerializeField] private FoodSpawner foodSpawner;
@@ -17,6 +21,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        FitMainCameraToBoard();
         InitializeSceneFoundation();
     }
 
@@ -142,6 +147,53 @@ public class GameManager : MonoBehaviour
             -((boardWidth - 1) * 0.5f),
             -((boardHeight - 1) * 0.5f)
         );
+    }
+
+    private void FitMainCameraToBoard()
+    {
+        if (!fitCameraToBoardOnStart)
+        {
+            return;
+        }
+
+        if (boardWidth <= 0 || boardHeight <= 0)
+        {
+            Debug.LogWarning("GameManager: board size must be greater than zero to fit camera.");
+            return;
+        }
+
+        Camera targetCamera = Camera.main;
+        if (targetCamera == null)
+        {
+            Debug.LogWarning("GameManager: no Main Camera found for board fitting.");
+            return;
+        }
+
+        if (!targetCamera.orthographic)
+        {
+            Debug.LogWarning("GameManager: Main Camera must be Orthographic for board fitting.");
+            return;
+        }
+
+        Vector3 minCellCenter = GridToWorldPosition(new Vector2Int(0, 0));
+        Vector3 maxCellCenter = GridToWorldPosition(new Vector2Int(boardWidth - 1, boardHeight - 1));
+
+        float boardMinX = minCellCenter.x - 0.5f;
+        float boardMaxX = maxCellCenter.x + 0.5f;
+        float boardMinY = minCellCenter.y - 0.5f;
+        float boardMaxY = maxCellCenter.y + 0.5f;
+
+        float halfWidth = ((boardMaxX - boardMinX) * 0.5f) + cameraPadding;
+        float halfHeight = ((boardMaxY - boardMinY) * 0.5f) + cameraPadding;
+        float aspect = Mathf.Max(0.01f, targetCamera.aspect);
+        float sizeFromWidth = halfWidth / aspect;
+
+        targetCamera.orthographicSize = Mathf.Max(halfHeight, sizeFromWidth);
+
+        Vector3 cameraPosition = targetCamera.transform.position;
+        cameraPosition.x = (boardMinX + boardMaxX) * 0.5f;
+        cameraPosition.y = (boardMinY + boardMaxY) * 0.5f;
+        targetCamera.transform.position = cameraPosition;
     }
 
     private void SpawnFoodForCurrentSnake()
