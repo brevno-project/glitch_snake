@@ -8,6 +8,12 @@ public class SnakeController : MonoBehaviour
     [SerializeField] private Vector2Int startGridPosition = new Vector2Int(10, 10);
     [SerializeField] private Vector2Int startDirection = Vector2Int.right;
 
+    [Header("Body Visuals")]
+    [SerializeField] private bool tintBodySegments = false;
+    [SerializeField] private Color bodySegmentColor = new Color(0.75f, 0.75f, 0.75f, 1f);
+    [SerializeField] private float bodySegmentScale = 1f;
+    [SerializeField] private int bodySortingOrderOffset = -1;
+
     private GameManager gameManager;
     private Vector2Int currentGridPosition;
     private Vector2Int currentDirection;
@@ -245,14 +251,15 @@ public class SnakeController : MonoBehaviour
     {
         GameObject segmentObject = new GameObject("BodySegment_" + index);
         segmentObject.transform.SetParent(transform.parent);
+        segmentObject.transform.localScale = Vector3.one * Mathf.Max(0.01f, bodySegmentScale);
 
         if (headSpriteRenderer != null)
         {
             SpriteRenderer segmentRenderer = segmentObject.AddComponent<SpriteRenderer>();
             segmentRenderer.sprite = headSpriteRenderer.sprite;
-            segmentRenderer.color = headSpriteRenderer.color;
+            segmentRenderer.color = tintBodySegments ? bodySegmentColor : headSpriteRenderer.color;
             segmentRenderer.sortingLayerID = headSpriteRenderer.sortingLayerID;
-            segmentRenderer.sortingOrder = headSpriteRenderer.sortingOrder - 1;
+            segmentRenderer.sortingOrder = headSpriteRenderer.sortingOrder + bodySortingOrderOffset;
         }
 
         return segmentObject.transform;

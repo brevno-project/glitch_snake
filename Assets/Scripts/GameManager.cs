@@ -16,6 +16,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color borderColor = Color.white;
     [SerializeField] private float borderWidth = 0.08f;
     [SerializeField] private int borderSortingOrder = 20;
+    [SerializeField] [Range(0, 8)] private int borderCornerVertices = 2;
+    [SerializeField] [Range(0, 8)] private int borderCapVertices = 2;
 
     [Header("Scene References")]
     [SerializeField] private SnakeController snakeController;
@@ -232,6 +234,10 @@ public class GameManager : MonoBehaviour
         boardBorderLine.startColor = borderColor;
         boardBorderLine.endColor = borderColor;
         boardBorderLine.sortingOrder = borderSortingOrder;
+        boardBorderLine.numCornerVertices = borderCornerVertices;
+        boardBorderLine.numCapVertices = borderCapVertices;
+        boardBorderLine.alignment = LineAlignment.View;
+        boardBorderLine.textureMode = LineTextureMode.Stretch;
 
         GetBoardWorldBounds(out float boardMinX, out float boardMaxX, out float boardMinY, out float boardMaxY);
 

@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 using UnityEngine.UI;
 
 public class GameUIController : MonoBehaviour
 {
     [Header("UI References")]
+    [SerializeField] private TMP_Text scoreTextTMP;
     [SerializeField] private Text scoreText;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private string scorePrefix = "Score: ";
@@ -24,10 +26,21 @@ public class GameUIController : MonoBehaviour
     public void SetScore(int score)
     {
         currentScore = score;
+        UpdateScoreLabel();
+    }
+
+    private void UpdateScoreLabel()
+    {
+        string scoreLabel = scorePrefix + currentScore;
+
+        if (scoreTextTMP != null)
+        {
+            scoreTextTMP.text = scoreLabel;
+        }
 
         if (scoreText != null)
         {
-            scoreText.text = scorePrefix + currentScore;
+            scoreText.text = scoreLabel;
         }
     }
 
