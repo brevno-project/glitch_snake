@@ -10,16 +10,21 @@ public class GameUIController : MonoBehaviour
     [SerializeField] private Text scoreText;
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private string scorePrefix = "Score: ";
+    [SerializeField] private string bestScorePrefix = "Best: ";
+    [SerializeField] private string scoreSeparator = "   ";
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private GameManager gameManager;
     private int currentScore;
+    private int bestScore;
 
     public void Initialize(GameManager manager)
     {
         gameManager = manager;
         currentScore = 0;
+        bestScore = 0;
 
+        UpdateScoreLabel();
         ShowGameOver(false);
     }
 
@@ -29,9 +34,15 @@ public class GameUIController : MonoBehaviour
         UpdateScoreLabel();
     }
 
+    public void SetBestScore(int score)
+    {
+        bestScore = Mathf.Max(0, score);
+        UpdateScoreLabel();
+    }
+
     private void UpdateScoreLabel()
     {
-        string scoreLabel = scorePrefix + currentScore;
+        string scoreLabel = scorePrefix + currentScore + scoreSeparator + bestScorePrefix + bestScore;
 
         if (scoreTextTMP != null)
         {

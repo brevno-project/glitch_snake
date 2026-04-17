@@ -6,6 +6,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int boardWidth = 20;
     [SerializeField] private int boardHeight = 20;
     [SerializeField] private float moveInterval = 0.15f;
+    
+    [Header("Speed Progression")]
+    [SerializeField] private bool increaseSpeedWithScore = true;
+    [SerializeField] [Min(1)] private int foodPerSpeedStep = 5;
+    [SerializeField] [Min(0f)] private float moveIntervalDecreasePerStep = 0.008f;
+    [SerializeField] [Min(0.02f)] private float minMoveInterval = 0.08f;
 
     [Header("Camera")]
     [SerializeField] private bool fitCameraToBoardOnStart = true;
@@ -26,7 +32,10 @@ public class GameManager : MonoBehaviour
 
     private bool isGameOver;
     private int score;
+    private int bestScore;
     private LineRenderer boardBorderLine;
+
+    private const string BestScorePrefsKey = "GlitchSnake_BestScore";
 
     private void Start()
     {
@@ -44,12 +53,14 @@ public class GameManager : MonoBehaviour
 
         isGameOver = false;
         score = 0;
+        bestScore = LoadBestScore();
 
         snakeController.Initialize(this);
         foodSpawner.Initialize(this, boardWidth, boardHeight);
         gameUIController.Initialize(this);
 
         gameUIController.SetScore(score);
+        gameUIController.SetBestScore(bestScore);
         gameUIController.ShowGameOver(false);
 
         SpawnFoodForCurrentSnake();
@@ -88,6 +99,13 @@ public class GameManager : MonoBehaviour
         }
 
         score += 1;
+        if (score > bestScore)
+        {
+            bestScore = score;
+            SaveBestScore();
+            gameUIController.SetBestScore(bestScore);
+        }
+
         gameUIController.SetScore(score);
     }
 
@@ -129,6 +147,11 @@ public class GameManager : MonoBehaviour
         return score;
     }
 
+    public int GetBestScore()
+    {
+        return bestScore;
+    }
+
     public int GetBoardWidth()
     {
         return boardWidth;
@@ -141,7 +164,15 @@ public class GameManager : MonoBehaviour
 
     public float GetMoveInterval()
     {
-        return moveInterval;
+        float targetMoveInterval = moveInterval;
+        if (increaseSpeedWithScore && foodPerSpeedStep > 0)
+        {
+            int speedSteps = score / foodPerSpeedStep;
+            targetMoveInterval -= speedSteps * moveIntervalDecreasePerStep;
+        }
+
+        float safeMinInterval = Mathf.Max(0.01f, minMoveInterval);
+        return Mathf.Max(safeMinInterval, targetMoveInterval);
     }
 
     public Vector3 GridToWorldPosition(Vector2Int gridPosition)
@@ -261,6 +292,17 @@ public class GameManager : MonoBehaviour
     private void SpawnFoodForCurrentSnake()
     {
         foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
+    }
+
+    private int LoadBestScore()
+    {
+        return Mathf.Max(0, PlayerPrefs.GetInt(BestScorePrefsKey, 0));
+    }
+
+    private void SaveBestScore()
+    {
+        PlayerPrefs.SetInt(BestScorePrefsKey, bestScore);
+        PlayerPrefs.Save();
     }
 
     private void OnDrawGizmosSelected()
