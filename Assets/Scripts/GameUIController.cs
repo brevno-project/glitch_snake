@@ -60,7 +60,7 @@ public class GameUIController : MonoBehaviour
         string scoreLabel = scorePrefix + currentScore + scoreSeparator + bestScorePrefix + bestScore;
         if (!string.IsNullOrWhiteSpace(statusMessage))
         {
-            scoreLabel += scoreSeparator + statusMessage;
+            scoreLabel += "\n" + statusMessage;
         }
 
         if (scoreTextTMP != null)

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 28da671ed8210a649a414943036acf4a
+guid: 391a2e7c3825beb439a4cbd26d3b171e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7650027050182816377
-    second: snake_segment_rounded_0
+      213: -7818741998506178163
+    second: snake_body_link_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -100,7 +100,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: snake_segment_rounded_0
+      name: snake_body_link_0
       rect:
         serializedVersion: 2
         x: 0
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 972b640121b5a2a60800000000000000
-      internalID: 7650027050182816377
+      spriteID: d898c9ce39f3e7390800000000000000
+      internalID: -7818741998506178163
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      snake_segment_rounded_0: 7650027050182816377
+      snake_body_link_0: -7818741998506178163
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

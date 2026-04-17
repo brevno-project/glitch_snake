@@ -11,8 +11,38 @@ public class SnakeController : MonoBehaviour
     [Header("Body Visuals")]
     [SerializeField] private bool tintBodySegments = false;
     [SerializeField] private Color bodySegmentColor = new Color(0.13333334f, 0.827451f, 0.93333334f, 1f);
+    [SerializeField] private Sprite bodySpriteOverride;
     [SerializeField] private float bodySegmentScale = 1f;
+    [SerializeField] private float tailSegmentScale = 0.78f;
+    [SerializeField] private bool taperBodyTowardsTail = true;
     [SerializeField] private int bodySortingOrderOffset = -1;
+    [SerializeField] [Min(1f)] private float cornerSegmentScaleMultiplier = 1.02f;
+    [SerializeField] private bool useDirectionalSprites = true;
+    [SerializeField] private Sprite bodyHorizontalSprite;
+    [SerializeField] private Sprite bodyVerticalSprite;
+    [SerializeField] private Sprite bodyTopLeftSprite;
+    [SerializeField] private Sprite bodyTopRightSprite;
+    [SerializeField] private Sprite bodyBottomLeftSprite;
+    [SerializeField] private Sprite bodyBottomRightSprite;
+    [SerializeField] private Sprite tailUpSprite;
+    [SerializeField] private Sprite tailDownSprite;
+    [SerializeField] private Sprite tailLeftSprite;
+    [SerializeField] private Sprite tailRightSprite;
+
+    [Header("Head Visuals")]
+    [SerializeField] private Sprite headUpSprite;
+    [SerializeField] private Sprite headDownSprite;
+    [SerializeField] private Sprite headLeftSprite;
+    [SerializeField] private Sprite headRightSprite;
+    [SerializeField] private bool orientHeadToDirection = true;
+    [SerializeField] private float headTurnSmoothing = 20f;
+    [SerializeField] private bool pulseHead = true;
+    [SerializeField] private float headPulseAmplitude = 0.05f;
+    [SerializeField] private float headPulseSpeed = 7f;
+    [SerializeField] private Sprite blinkHeadSprite;
+    [SerializeField] private float minBlinkInterval = 2.2f;
+    [SerializeField] private float maxBlinkInterval = 4.8f;
+    [SerializeField] private float blinkDuration = 0.09f;
 
     private GameManager gameManager;
     private Vector2Int currentGridPosition;
@@ -22,12 +52,28 @@ public class SnakeController : MonoBehaviour
 
     private readonly List<Vector2Int> occupiedCells = new List<Vector2Int>();
     private readonly List<Transform> bodySegments = new List<Transform>();
+    private readonly List<SpriteRenderer> bodySegmentRenderers = new List<SpriteRenderer>();
     private SpriteRenderer headSpriteRenderer;
+    private Vector3 baseHeadScale;
+    private Sprite defaultHeadSprite;
+    private float headFacingAngle;
+    private float blinkEndsAtTime;
+    private float nextBlinkStartTime;
 
     public void Initialize(GameManager manager)
     {
         gameManager = manager;
-        headSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        headSpriteRenderer = GetComponent<SpriteRenderer>();
+        if (headSpriteRenderer == null)
+        {
+            headSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        }
+
+        baseHeadScale = transform.localScale;
+        defaultHeadSprite = headSpriteRenderer != null ? headSpriteRenderer.sprite : null;
+        headFacingAngle = DirectionToAngle(startDirection);
+        ScheduleNextBlink();
+
         ResetToStart();
     }
 
@@ -42,12 +88,23 @@ public class SnakeController : MonoBehaviour
         occupiedCells.Clear();
         occupiedCells.Add(currentGridPosition);
 
+        transform.localScale = baseHeadScale;
+        headFacingAngle = DirectionToAngle(currentDirection);
+        transform.rotation = UseDirectionalHeadSprites() ? Quaternion.identity : Quaternion.Euler(0f, 0f, headFacingAngle);
+        ApplyHeadSprite(currentDirection);
         transform.position = GridToWorld(currentGridPosition);
     }
 
     private void Update()
     {
-        if (gameManager == null || !gameManager.IsGameplayActive())
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        UpdateHeadVisual();
+
+        if (!gameManager.IsGameplayActive())
         {
             return;
         }
@@ -233,12 +290,40 @@ public class SnakeController : MonoBehaviour
             int lastIndex = bodySegments.Count - 1;
             Destroy(bodySegments[lastIndex].gameObject);
             bodySegments.RemoveAt(lastIndex);
+            bodySegmentRenderers.RemoveAt(lastIndex);
         }
 
         for (int i = 0; i < bodySegments.Count; i++)
         {
             Vector2Int bodyCell = occupiedCells[i + 1];
             bodySegments[i].position = GridToWorld(bodyCell);
+            ApplyBodySegmentSprite(i);
+
+            float targetScale = Mathf.Max(0.01f, bodySegmentScale);
+            if (taperBodyTowardsTail && bodySegments.Count > 1)
+            {
+                float tailLerp = (float)i / (bodySegments.Count - 1);
+                targetScale = Mathf.Max(0.01f, Mathf.Lerp(bodySegmentScale, tailSegmentScale, tailLerp));
+            }
+
+            int cellIndex = i + 1;
+            if (IsCornerCell(cellIndex))
+            {
+                targetScale *= Mathf.Max(1f, cornerSegmentScaleMultiplier);
+            }
+
+            bodySegments[i].localScale = Vector3.one * targetScale;
+
+            if (tintBodySegments && i < bodySegmentRenderers.Count && bodySegmentRenderers[i] != null)
+            {
+                Color segmentColor = bodySegmentColor;
+                if (bodySegments.Count > 1)
+                {
+                    float tailLerp = (float)i / (bodySegments.Count - 1);
+                    segmentColor.a = Mathf.Lerp(bodySegmentColor.a, bodySegmentColor.a * 0.78f, tailLerp);
+                }
+                bodySegmentRenderers[i].color = segmentColor;
+            }
         }
     }
 
@@ -253,15 +338,18 @@ public class SnakeController : MonoBehaviour
         segmentObject.transform.SetParent(transform.parent);
         segmentObject.transform.localScale = Vector3.one * Mathf.Max(0.01f, bodySegmentScale);
 
+        SpriteRenderer segmentRenderer = null;
+
         if (headSpriteRenderer != null)
         {
-            SpriteRenderer segmentRenderer = segmentObject.AddComponent<SpriteRenderer>();
-            segmentRenderer.sprite = headSpriteRenderer.sprite;
+            segmentRenderer = segmentObject.AddComponent<SpriteRenderer>();
+            segmentRenderer.sprite = GetFallbackBodySprite();
             segmentRenderer.color = tintBodySegments ? bodySegmentColor : headSpriteRenderer.color;
             segmentRenderer.sortingLayerID = headSpriteRenderer.sortingLayerID;
             segmentRenderer.sortingOrder = headSpriteRenderer.sortingOrder + bodySortingOrderOffset;
         }
 
+        bodySegmentRenderers.Add(segmentRenderer);
         return segmentObject.transform;
     }
 
@@ -276,5 +364,318 @@ public class SnakeController : MonoBehaviour
         }
 
         bodySegments.Clear();
+        bodySegmentRenderers.Clear();
+    }
+
+    private void UpdateHeadVisual()
+    {
+        if (headSpriteRenderer == null)
+        {
+            return;
+        }
+
+        Vector2Int facingDirection = currentDirection != Vector2Int.zero ? currentDirection : startDirection;
+        bool usesDirectionalHead = ApplyHeadSprite(facingDirection);
+
+        if (usesDirectionalHead)
+        {
+            transform.rotation = Quaternion.identity;
+        }
+        else if (orientHeadToDirection)
+        {
+            float targetAngle = DirectionToAngle(facingDirection);
+            float smoothing = Mathf.Max(0.01f, headTurnSmoothing);
+            float interpolation = 1f - Mathf.Exp(-smoothing * Time.deltaTime);
+            headFacingAngle = Mathf.LerpAngle(headFacingAngle, targetAngle, interpolation);
+            transform.rotation = Quaternion.Euler(0f, 0f, headFacingAngle);
+        }
+
+        if (pulseHead)
+        {
+            float amplitude = Mathf.Max(0f, headPulseAmplitude);
+            float speed = Mathf.Max(0f, headPulseSpeed);
+            float pulse = 1f + Mathf.Sin(Time.time * speed) * amplitude;
+            transform.localScale = baseHeadScale * pulse;
+        }
+
+        if (usesDirectionalHead || blinkHeadSprite == null)
+        {
+            return;
+        }
+
+        float currentTime = Time.time;
+        if (currentTime >= nextBlinkStartTime)
+        {
+            blinkEndsAtTime = currentTime + Mathf.Max(0.01f, blinkDuration);
+            ScheduleNextBlink();
+        }
+
+        bool isBlinking = currentTime < blinkEndsAtTime;
+        headSpriteRenderer.sprite = isBlinking ? blinkHeadSprite : defaultHeadSprite;
+    }
+
+    private void ScheduleNextBlink()
+    {
+        float minInterval = Mathf.Max(0.1f, minBlinkInterval);
+        float maxInterval = Mathf.Max(minInterval, maxBlinkInterval);
+        nextBlinkStartTime = Time.time + Random.Range(minInterval, maxInterval);
+    }
+
+    private bool ApplyHeadSprite(Vector2Int direction)
+    {
+        if (headSpriteRenderer == null)
+        {
+            return false;
+        }
+
+        if (!TryGetDirectionalHeadSprite(direction, out Sprite directionalHeadSprite))
+        {
+            headSpriteRenderer.sprite = defaultHeadSprite;
+            return false;
+        }
+
+        headSpriteRenderer.sprite = directionalHeadSprite;
+        return true;
+    }
+
+    private void ApplyBodySegmentSprite(int segmentIndex)
+    {
+        if (segmentIndex < 0 || segmentIndex >= bodySegmentRenderers.Count)
+        {
+            return;
+        }
+
+        SpriteRenderer segmentRenderer = bodySegmentRenderers[segmentIndex];
+        if (segmentRenderer == null)
+        {
+            return;
+        }
+
+        Sprite targetSprite = GetFallbackBodySprite();
+        int cellIndex = segmentIndex + 1;
+
+        if (useDirectionalSprites)
+        {
+            bool isTail = cellIndex == occupiedCells.Count - 1;
+            if (isTail)
+            {
+                if (TryGetTailSprite(cellIndex, out Sprite tailSprite))
+                {
+                    targetSprite = tailSprite;
+                }
+            }
+            else if (TryGetBodySprite(cellIndex, out Sprite bodySprite))
+            {
+                targetSprite = bodySprite;
+            }
+        }
+
+        segmentRenderer.sprite = targetSprite;
+    }
+
+    private bool TryGetDirectionalHeadSprite(Vector2Int direction, out Sprite sprite)
+    {
+        sprite = null;
+        if (!UseDirectionalHeadSprites())
+        {
+            return false;
+        }
+
+        if (direction == Vector2Int.up)
+        {
+            sprite = headUpSprite;
+        }
+        else if (direction == Vector2Int.down)
+        {
+            sprite = headDownSprite;
+        }
+        else if (direction == Vector2Int.left)
+        {
+            sprite = headLeftSprite;
+        }
+        else
+        {
+            sprite = headRightSprite;
+        }
+
+        return sprite != null;
+    }
+
+    private bool TryGetTailSprite(int cellIndex, out Sprite sprite)
+    {
+        sprite = null;
+        if (cellIndex <= 0 || cellIndex >= occupiedCells.Count)
+        {
+            return false;
+        }
+
+        Vector2Int tailCell = occupiedCells[cellIndex];
+        Vector2Int neighborCell = occupiedCells[cellIndex - 1];
+        Vector2Int tailDirection = tailCell - neighborCell;
+
+        // During growth the new last cell can overlap the previous tail cell for one frame.
+        // In that case infer the tail direction from the previous segment direction.
+        if (tailDirection == Vector2Int.zero && cellIndex >= 2)
+        {
+            Vector2Int previousNeighborCell = occupiedCells[cellIndex - 2];
+            tailDirection = neighborCell - previousNeighborCell;
+        }
+
+        if (tailDirection == Vector2Int.up)
+        {
+            sprite = tailUpSprite;
+        }
+        else if (tailDirection == Vector2Int.down)
+        {
+            sprite = tailDownSprite;
+        }
+        else if (tailDirection == Vector2Int.left)
+        {
+            sprite = tailLeftSprite;
+        }
+        else if (tailDirection == Vector2Int.right)
+        {
+            sprite = tailRightSprite;
+        }
+
+        return sprite != null;
+    }
+
+    private bool TryGetBodySprite(int cellIndex, out Sprite sprite)
+    {
+        sprite = null;
+        if (cellIndex <= 0 || cellIndex >= occupiedCells.Count - 1)
+        {
+            return false;
+        }
+
+        Vector2Int currentCell = occupiedCells[cellIndex];
+        Vector2Int previousCell = occupiedCells[cellIndex - 1];
+        Vector2Int nextCell = occupiedCells[cellIndex + 1];
+
+        Vector2Int toPrevious = previousCell - currentCell;
+        Vector2Int toNext = nextCell - currentCell;
+
+        // Handle temporary duplicated tail cells on growth so segment type stays coherent.
+        if (toPrevious == Vector2Int.zero && toNext != Vector2Int.zero)
+        {
+            toPrevious = -toNext;
+        }
+        else if (toNext == Vector2Int.zero && toPrevious != Vector2Int.zero)
+        {
+            toNext = -toPrevious;
+        }
+
+        if (toPrevious == -toNext)
+        {
+            sprite = toPrevious.x != 0 ? bodyHorizontalSprite : bodyVerticalSprite;
+            return sprite != null;
+        }
+
+        bool hasUp = toPrevious == Vector2Int.up || toNext == Vector2Int.up;
+        bool hasDown = toPrevious == Vector2Int.down || toNext == Vector2Int.down;
+        bool hasLeft = toPrevious == Vector2Int.left || toNext == Vector2Int.left;
+        bool hasRight = toPrevious == Vector2Int.right || toNext == Vector2Int.right;
+
+        if (hasUp && hasRight)
+        {
+            sprite = bodyTopRightSprite;
+        }
+        else if (hasUp && hasLeft)
+        {
+            sprite = bodyTopLeftSprite;
+        }
+        else if (hasDown && hasRight)
+        {
+            sprite = bodyBottomRightSprite;
+        }
+        else if (hasDown && hasLeft)
+        {
+            sprite = bodyBottomLeftSprite;
+        }
+
+        return sprite != null;
+    }
+
+    private bool IsCornerCell(int cellIndex)
+    {
+        if (cellIndex <= 0 || cellIndex >= occupiedCells.Count - 1)
+        {
+            return false;
+        }
+
+        Vector2Int currentCell = occupiedCells[cellIndex];
+        Vector2Int previousCell = occupiedCells[cellIndex - 1];
+        Vector2Int nextCell = occupiedCells[cellIndex + 1];
+
+        Vector2Int toPrevious = previousCell - currentCell;
+        Vector2Int toNext = nextCell - currentCell;
+
+        if (toPrevious == Vector2Int.zero || toNext == Vector2Int.zero)
+        {
+            return false;
+        }
+
+        // Straight segment if directions are opposite.
+        if (toPrevious == -toNext)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private Sprite GetFallbackBodySprite()
+    {
+        if (bodyHorizontalSprite != null)
+        {
+            return bodyHorizontalSprite;
+        }
+
+        if (bodyVerticalSprite != null)
+        {
+            return bodyVerticalSprite;
+        }
+
+        if (bodySpriteOverride != null)
+        {
+            return bodySpriteOverride;
+        }
+
+        if (headSpriteRenderer != null && headSpriteRenderer.sprite != null)
+        {
+            return headSpriteRenderer.sprite;
+        }
+
+        return defaultHeadSprite;
+    }
+
+    private bool UseDirectionalHeadSprites()
+    {
+        return useDirectionalSprites
+            && headUpSprite != null
+            && headDownSprite != null
+            && headLeftSprite != null
+            && headRightSprite != null;
+    }
+
+    private float DirectionToAngle(Vector2Int direction)
+    {
+        if (direction == Vector2Int.up)
+        {
+            return 90f;
+        }
+
+        if (direction == Vector2Int.left)
+        {
+            return 180f;
+        }
+
+        if (direction == Vector2Int.down)
+        {
+            return -90f;
+        }
+
+        return 0f;
     }
 }

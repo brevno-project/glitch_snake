@@ -1,10 +1,10 @@
-fileFormatVersion: 2
-guid: 28da671ed8210a649a414943036acf4a
+﻿fileFormatVersion: 2
+guid: 5f8dc9b495c263e42add89d0df5e31c5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7650027050182816377
-    second: snake_segment_rounded_0
+      213: -6854801067047936884
+    second: head_down_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 64
+  spritePixelsToUnits: 40
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -100,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: snake_segment_rounded_0
+      name: head_down_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 64
-        height: 64
+        width: 40
+        height: 40
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 972b640121b5a2a60800000000000000
-      internalID: 7650027050182816377
+      spriteID: c8c93a07fbaded0a0800000000000000
+      internalID: -6854801067047936884
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      snake_segment_rounded_0: 7650027050182816377
+      head_down_0: -6854801067047936884
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

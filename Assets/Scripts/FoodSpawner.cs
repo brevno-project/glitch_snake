@@ -46,6 +46,12 @@ public class FoodSpawner : MonoBehaviour
             Quaternion.identity,
             transform
         );
+
+        if (currentFoodInstance.GetComponent<FoodVisualAnimator>() == null)
+        {
+            currentFoodInstance.AddComponent<FoodVisualAnimator>();
+        }
+
         hasFood = true;
     }
 

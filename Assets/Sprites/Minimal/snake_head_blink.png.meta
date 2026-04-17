@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 28da671ed8210a649a414943036acf4a
+guid: 7fef2d429c41acc489905728e12612ee
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7650027050182816377
-    second: snake_segment_rounded_0
+      213: -4462682766165152021
+    second: snake_head_blink_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -100,7 +100,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: snake_segment_rounded_0
+      name: snake_head_blink_0
       rect:
         serializedVersion: 2
         x: 0
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 972b640121b5a2a60800000000000000
-      internalID: 7650027050182816377
+      spriteID: beee7712bad5112c0800000000000000
+      internalID: -4462682766165152021
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      snake_segment_rounded_0: 7650027050182816377
+      snake_head_blink_0: -4462682766165152021
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
