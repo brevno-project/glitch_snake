@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Border Visual")]
     [SerializeField] private bool showBoardBorder = true;
-    [SerializeField] private Color borderColor = Color.white;
+    [SerializeField] private Color borderColor = new Color(0.39215687f, 0.45490196f, 0.54509807f, 1f);
     [SerializeField] private float borderWidth = 0.08f;
     [SerializeField] private int borderSortingOrder = 20;
     [SerializeField] [Range(0, 8)] private int borderCornerVertices = 2;

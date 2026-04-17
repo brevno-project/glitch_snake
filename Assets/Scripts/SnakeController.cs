@@ -10,7 +10,7 @@ public class SnakeController : MonoBehaviour
 
     [Header("Body Visuals")]
     [SerializeField] private bool tintBodySegments = false;
-    [SerializeField] private Color bodySegmentColor = new Color(0.75f, 0.75f, 0.75f, 1f);
+    [SerializeField] private Color bodySegmentColor = new Color(0.13333334f, 0.827451f, 0.93333334f, 1f);
     [SerializeField] private float bodySegmentScale = 1f;
     [SerializeField] private int bodySortingOrderOffset = -1;
 
