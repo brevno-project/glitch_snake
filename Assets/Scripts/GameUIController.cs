@@ -17,13 +17,16 @@ public class GameUIController : MonoBehaviour
     private GameManager gameManager;
     private int currentScore;
     private int bestScore;
+    private string statusMessage;
 
     public void Initialize(GameManager manager)
     {
         gameManager = manager;
         currentScore = 0;
         bestScore = 0;
+        statusMessage = string.Empty;
 
+        ConfigureScoreLabelsForStatus();
         UpdateScoreLabel();
         ShowGameOver(false);
     }
@@ -40,9 +43,25 @@ public class GameUIController : MonoBehaviour
         UpdateScoreLabel();
     }
 
+    public void SetStatusMessage(string message)
+    {
+        statusMessage = message ?? string.Empty;
+        UpdateScoreLabel();
+    }
+
+    public void ClearStatusMessage()
+    {
+        statusMessage = string.Empty;
+        UpdateScoreLabel();
+    }
+
     private void UpdateScoreLabel()
     {
         string scoreLabel = scorePrefix + currentScore + scoreSeparator + bestScorePrefix + bestScore;
+        if (!string.IsNullOrWhiteSpace(statusMessage))
+        {
+            scoreLabel += scoreSeparator + statusMessage;
+        }
 
         if (scoreTextTMP != null)
         {
@@ -52,6 +71,21 @@ public class GameUIController : MonoBehaviour
         if (scoreText != null)
         {
             scoreText.text = scoreLabel;
+        }
+    }
+
+    private void ConfigureScoreLabelsForStatus()
+    {
+        if (scoreTextTMP != null)
+        {
+            scoreTextTMP.enableWordWrapping = false;
+            scoreTextTMP.overflowMode = TextOverflowModes.Overflow;
+        }
+
+        if (scoreText != null)
+        {
+            scoreText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            scoreText.verticalOverflow = VerticalWrapMode.Overflow;
         }
     }
 

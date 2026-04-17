@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
@@ -12,6 +13,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Min(1)] private int foodPerSpeedStep = 5;
     [SerializeField] [Min(0f)] private float moveIntervalDecreasePerStep = 0.008f;
     [SerializeField] [Min(0.02f)] private float minMoveInterval = 0.08f;
+
+    [Header("Flow")]
+    [SerializeField] private bool waitForInputToStart = true;
+    [SerializeField] private string startStatusMessage = "Press any key to start";
+    [SerializeField] private string pausedStatusMessage = "Paused (P/Esc)";
 
     [Header("Camera")]
     [SerializeField] private bool fitCameraToBoardOnStart = true;
@@ -31,6 +37,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameUIController gameUIController;
 
     private bool isGameOver;
+    private bool hasGameStarted;
+    private bool isPaused;
     private int score;
     private int bestScore;
     private LineRenderer boardBorderLine;
@@ -52,6 +60,8 @@ public class GameManager : MonoBehaviour
         }
 
         isGameOver = false;
+        hasGameStarted = !waitForInputToStart;
+        isPaused = false;
         score = 0;
         bestScore = LoadBestScore();
 
@@ -61,6 +71,7 @@ public class GameManager : MonoBehaviour
 
         gameUIController.SetScore(score);
         gameUIController.SetBestScore(bestScore);
+        UpdateFlowStatusLabel();
         gameUIController.ShowGameOver(false);
 
         SpawnFoodForCurrentSnake();
@@ -134,12 +145,19 @@ public class GameManager : MonoBehaviour
         }
 
         isGameOver = true;
+        isPaused = false;
+        UpdateFlowStatusLabel();
         gameUIController.ShowGameOver(true);
     }
 
     public bool IsGameOver()
     {
         return isGameOver;
+    }
+
+    public bool IsGameplayActive()
+    {
+        return hasGameStarted && !isPaused && !isGameOver;
     }
 
     public int GetScore()
@@ -150,6 +168,16 @@ public class GameManager : MonoBehaviour
     public int GetBestScore()
     {
         return bestScore;
+    }
+
+    public bool HasGameStarted()
+    {
+        return hasGameStarted;
+    }
+
+    public bool IsPaused()
+    {
+        return isPaused;
     }
 
     public int GetBoardWidth()
@@ -294,6 +322,38 @@ public class GameManager : MonoBehaviour
         foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
     }
 
+    private void Update()
+    {
+        if (isGameOver)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (!hasGameStarted)
+        {
+            if (keyboard.anyKey.wasPressedThisFrame)
+            {
+                hasGameStarted = true;
+                isPaused = false;
+                UpdateFlowStatusLabel();
+            }
+
+            return;
+        }
+
+        if (keyboard.pKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame)
+        {
+            isPaused = !isPaused;
+            UpdateFlowStatusLabel();
+        }
+    }
+
     private int LoadBestScore()
     {
         return Mathf.Max(0, PlayerPrefs.GetInt(BestScorePrefsKey, 0));
@@ -303,6 +363,34 @@ public class GameManager : MonoBehaviour
     {
         PlayerPrefs.SetInt(BestScorePrefsKey, bestScore);
         PlayerPrefs.Save();
+    }
+
+    private void UpdateFlowStatusLabel()
+    {
+        if (gameUIController == null)
+        {
+            return;
+        }
+
+        if (isGameOver)
+        {
+            gameUIController.ClearStatusMessage();
+            return;
+        }
+
+        if (!hasGameStarted)
+        {
+            gameUIController.SetStatusMessage(startStatusMessage);
+            return;
+        }
+
+        if (isPaused)
+        {
+            gameUIController.SetStatusMessage(pausedStatusMessage);
+            return;
+        }
+
+        gameUIController.ClearStatusMessage();
     }
 
     private void OnDrawGizmosSelected()

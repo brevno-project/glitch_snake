@@ -47,7 +47,7 @@ public class SnakeController : MonoBehaviour
 
     private void Update()
     {
-        if (gameManager == null || gameManager.IsGameOver())
+        if (gameManager == null || !gameManager.IsGameplayActive())
         {
             return;
         }
