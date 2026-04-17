@@ -214,7 +214,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_Color: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -231,7 +231,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294571764
-  m_fontColor: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_fontColor: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -248,8 +248,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294571764
-  m_fontSize: 26
-  m_fontSizeBase: 26
+  m_fontSize: 27
+  m_fontSizeBase: 27
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -414,8 +414,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 92}
-  m_SizeDelta: {x: 500, y: 90}
+  m_AnchoredPosition: {x: 0, y: 108}
+  m_SizeDelta: {x: 560, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &321383477
 MonoBehaviour:
@@ -430,7 +430,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_Color: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -447,7 +447,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294571764
-  m_fontColor: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_fontColor: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -464,8 +464,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40
-  m_fontSizeBase: 40
+  m_fontSize: 44
+  m_fontSizeBase: 44
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -553,8 +553,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -70}
-  m_SizeDelta: {x: 300, y: 60}
+  m_AnchoredPosition: {x: 0, y: -78}
+  m_SizeDelta: {x: 320, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &369690369
 MonoBehaviour:
@@ -577,10 +577,10 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 0.12156863, g: 0.16078432, b: 0.21568628, a: 1}
-    m_HighlightedColor: {r: 0.21568628, g: 0.25490198, b: 0.31764707, a: 1}
-    m_PressedColor: {r: 0.06666667, g: 0.09411765, b: 0.15294118, a: 1}
-    m_SelectedColor: {r: 0.21568628, g: 0.25490198, b: 0.31764707, a: 1}
+    m_NormalColor: {r: 0.11764706, g: 0.16078432, b: 0.23137255, a: 1}
+    m_HighlightedColor: {r: 0.2, g: 0.25490198, b: 0.33333334, a: 1}
+    m_PressedColor: {r: 0.05882353, g: 0.09019608, b: 0.16470589, a: 1}
+    m_SelectedColor: {r: 0.2, g: 0.25490198, b: 0.33333334, a: 1}
     m_DisabledColor: {r: 0.4, g: 0.4, b: 0.4, a: 0.5}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -632,8 +632,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: -7674509880912533421, guid: 6fe6ea893311be64dbb7b27cb3da7769, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -684,7 +684,7 @@ MonoBehaviour:
   gameOverPanel: {fileID: 1706539327}
   scorePrefix: 'Score: '
   bestScorePrefix: 'Best: '
-  scoreSeparator: '   '
+  scoreSeparator: '  |  '
   mainMenuSceneName: MainMenu
 --- !u!224 &598304612
 RectTransform:
@@ -755,7 +755,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_Color: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -772,7 +772,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_fontColor: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -789,8 +789,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 26
-  m_fontSizeBase: 26
+  m_fontSize: 27
+  m_fontSizeBase: 27
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -879,16 +879,16 @@ MonoBehaviour:
   moveIntervalDecreasePerStep: 0.008
   minMoveInterval: 0.08
   waitForInputToStart: 1
-  startStatusMessage: Press any key
+  startStatusMessage: Press Any Key
   pausedStatusMessage: Paused (P/Esc)
   fitCameraToBoardOnStart: 1
-  cameraPadding: 2.5
+  cameraPadding: 2.2
   showBoardBorder: 1
-  borderColor: {r: 0.29411766, g: 0.33333334, b: 0.3882353, a: 1}
-  borderWidth: 0.1
+  borderColor: {r: 0.2784314, g: 0.33333334, b: 0.4117647, a: 1}
+  borderWidth: 0.08
   borderSortingOrder: 20
-  borderCornerVertices: 2
-  borderCapVertices: 2
+  borderCornerVertices: 6
+  borderCapVertices: 6
   snakeController: {fileID: 1775281377}
   foodSpawner: {fileID: 28026902}
   gameUIController: {fileID: 598304608}
@@ -941,8 +941,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 16, y: -12}
-  m_SizeDelta: {x: 460, y: 42}
+  m_AnchoredPosition: {x: 18, y: -14}
+  m_SizeDelta: {x: 540, y: 46}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &992456246
 MonoBehaviour:
@@ -957,7 +957,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9529412, g: 0.95686275, b: 0.9647059, a: 1}
+  m_Color: {r: 0.8862745, g: 0.9098039, b: 0.9411765, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -966,7 +966,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 24
+    m_FontSize: 22
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
@@ -1121,15 +1121,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.06666667, g: 0.078431375, b: 0.09411765, a: 0.88}
+  m_Color: {r: 0.043137256, g: 0.07058824, b: 0.1254902, a: 0.84}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 7326642349218358100, guid: 7aeea4104393d5a47a7fcd7c7a023c96, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1201,8 +1201,8 @@ MonoBehaviour:
   startGridPosition: {x: 0, y: 0}
   startDirection: {x: 1, y: 0}
   tintBodySegments: 1
-  bodySegmentColor: {r: 0.6117647, g: 0.6392157, b: 0.6862745, a: 1}
-  bodySegmentScale: 1
+  bodySegmentColor: {r: 0.5803922, g: 0.6392157, b: 0.72156864, a: 1}
+  bodySegmentScale: 0.88
   bodySortingOrderOffset: -1
 --- !u!4 &1775281378
 Transform:
@@ -1268,8 +1268,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
-  m_Color: {r: 0.8980392, g: 0.90588236, b: 0.92156863, a: 1}
+  m_Sprite: {fileID: 7650027050182816377, guid: 28da671ed8210a649a414943036acf4a, type: 3}
+  m_Color: {r: 0.972549, g: 0.98039216, b: 0.9882353, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1314,8 +1314,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 10}
-  m_SizeDelta: {x: 300, y: 60}
+  m_AnchoredPosition: {x: 0, y: 8}
+  m_SizeDelta: {x: 320, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1975842873
 MonoBehaviour:
@@ -1338,10 +1338,10 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 0.12156863, g: 0.16078432, b: 0.21568628, a: 1}
-    m_HighlightedColor: {r: 0.21568628, g: 0.25490198, b: 0.31764707, a: 1}
-    m_PressedColor: {r: 0.06666667, g: 0.09411765, b: 0.15294118, a: 1}
-    m_SelectedColor: {r: 0.21568628, g: 0.25490198, b: 0.31764707, a: 1}
+    m_NormalColor: {r: 0.11764706, g: 0.16078432, b: 0.23137255, a: 1}
+    m_HighlightedColor: {r: 0.2, g: 0.25490198, b: 0.33333334, a: 1}
+    m_PressedColor: {r: 0.05882353, g: 0.09019608, b: 0.16470589, a: 1}
+    m_SelectedColor: {r: 0.2, g: 0.25490198, b: 0.33333334, a: 1}
     m_DisabledColor: {r: 0.4, g: 0.4, b: 0.4, a: 0.5}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -1393,8 +1393,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: -7674509880912533421, guid: 6fe6ea893311be64dbb7b27cb3da7769, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1448,7 +1448,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.06666667, g: 0.078431375, b: 0.09411765, a: 1}
+  m_BackGroundColor: {r: 0.043137256, g: 0.07058824, b: 0.1254902, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
