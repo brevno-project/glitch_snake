@@ -149,6 +149,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodSpawner
   foodPrefab: {fileID: 8786289416354748564, guid: 47d4e1c4f3ee23541ad0d56a9e847eb6, type: 3}
+  fakeFoodPrefab: {fileID: 0}
+  tintFakeFoodIfNoPrefab: 1
+  fakeFoodTintColor: {r: 0.95, g: 0.35, b: 0.95, a: 1}
 --- !u!4 &28026903
 Transform:
   m_ObjectHideFlags: 0
@@ -882,10 +885,18 @@ MonoBehaviour:
   waitForInputToStart: 1
   startStatusMessage: PRESS ANY KEY TO START
   pausedStatusMessage: PAUSED (P/ESC)
-  reverseControlsEverySeconds: 8
+  glitchTriggerChanceOnFood: 0.4
   reverseControlsDuration: 4
+  speedGlitchDuration: 4
+  speedUpIntervalMultiplier: 0.65
+  slowDownIntervalMultiplier: 1.45
+  fakeFoodDuration: 5
+  fakeFoodScorePenalty: 1
   glitchModeStatusMessage: Glitch Mode
   reversedControlsStatusMessage: 'GLITCH: REVERSED'
+  speedUpStatusMessage: 'GLITCH: SPEED UP'
+  slowedStatusMessage: 'GLITCH: SLOWED'
+  fakeFoodStatusMessage: 'GLITCH: FAKE FOOD'
   foodEatSfx: {fileID: 8300000, guid: deace74d223030a4fac1ad0162e1c9cc, type: 3}
   deathSfx: {fileID: 8300000, guid: 42a39544c4ca4fb41b71fbe62d4bd67a, type: 3}
   foodEatVolume: 0.8
@@ -1213,11 +1224,11 @@ MonoBehaviour:
   tintBodySegments: 0
   bodySegmentColor: {r: 0.3764706, g: 0.44313726, b: 0.5411765, a: 1}
   bodySpriteOverride: {fileID: 0}
-  bodySegmentScale: 1
+  bodySegmentScale: 1.08
   tailSegmentScale: 1
   taperBodyTowardsTail: 0
   bodySortingOrderOffset: -1
-  cornerSegmentScaleMultiplier: 0.88
+  cornerSegmentScaleMultiplier: 1
   autoNormalizeBodyThickness: 1
   useDirectionalSprites: 1
   bodyHorizontalSprite: {fileID: 5183476676852997877, guid: 4e3e8afe41701724a9fadae8b941ee0d, type: 3}
@@ -1236,6 +1247,8 @@ MonoBehaviour:
   headRightSprite: {fileID: 7587527173961072947, guid: 3e7a764ac2b53a44abb7b544f3cfb716, type: 3}
   orientHeadToDirection: 1
   headTurnSmoothing: 20
+  autoNormalizeHeadSize: 1
+  headScaleMultiplier: 1
   pulseHead: 0
   headPulseAmplitude: 0.045
   headPulseSpeed: 7

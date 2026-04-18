@@ -3,6 +3,15 @@ using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
+    private enum ActiveGlitchType
+    {
+        None,
+        ReversedControls,
+        SpeedUp,
+        Slowed,
+        FakeFood
+    }
+
     [Header("Board")]
     [SerializeField] private int boardWidth = 20;
     [SerializeField] private int boardHeight = 20;
@@ -21,10 +30,18 @@ public class GameManager : MonoBehaviour
     [SerializeField] private string pausedStatusMessage = "Paused (P/Esc)";
 
     [Header("Glitch Mode")]
-    [SerializeField] private float reverseControlsEverySeconds = 8f;
+    [SerializeField] [Range(0f, 1f)] private float glitchTriggerChanceOnFood = 0.4f;
     [SerializeField] private float reverseControlsDuration = 4f;
+    [SerializeField] private float speedGlitchDuration = 4f;
+    [SerializeField] [Min(0.1f)] private float speedUpIntervalMultiplier = 0.65f;
+    [SerializeField] [Min(1f)] private float slowDownIntervalMultiplier = 1.45f;
+    [SerializeField] private float fakeFoodDuration = 5f;
+    [SerializeField] [Min(0)] private int fakeFoodScorePenalty = 1;
     [SerializeField] private string glitchModeStatusMessage = "Glitch Mode";
     [SerializeField] private string reversedControlsStatusMessage = "GLITCH: REVERSED";
+    [SerializeField] private string speedUpStatusMessage = "GLITCH: SPEED UP";
+    [SerializeField] private string slowedStatusMessage = "GLITCH: SLOWED";
+    [SerializeField] private string fakeFoodStatusMessage = "GLITCH: FAKE FOOD";
 
     [Header("Audio")]
     [SerializeField] private AudioClip foodEatSfx;
@@ -53,8 +70,8 @@ public class GameManager : MonoBehaviour
     private bool hasGameStarted;
     private bool isPaused;
     private bool areControlsReversed;
-    private float nextReverseControlsTime;
-    private float reverseControlsEndTime;
+    private ActiveGlitchType activeGlitchType = ActiveGlitchType.None;
+    private float activeGlitchEndTime;
     private int score;
     private int bestScore;
     private LineRenderer boardBorderLine;
@@ -84,8 +101,7 @@ public class GameManager : MonoBehaviour
         {
             gameMode = GameModeSelection.SelectedMode;
         }
-        areControlsReversed = false;
-        ResetNextReverseControlsTime();
+        ResetActiveGlitch();
         score = 0;
         bestScore = LoadBestScore();
 
@@ -153,14 +169,25 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (!foodSpawner.IsFoodAtPosition(headGridPosition))
+        if (!foodSpawner.TryConsumeFoodAtPosition(headGridPosition, out FoodSpawner.SpawnedFoodType consumedFoodType))
         {
+            return;
+        }
+
+        if (consumedFoodType == FoodSpawner.SpawnedFoodType.Fake)
+        {
+            HandleFakeFoodEaten();
             return;
         }
 
         snakeController.Grow();
         HandleFoodEaten();
-        SpawnFoodForCurrentSnake();
+
+        bool startedGlitch = TryStartRandomGlitchAfterNormalFood();
+        if (!startedGlitch || activeGlitchType != ActiveGlitchType.FakeFood)
+        {
+            SpawnFoodForCurrentSnake();
+        }
     }
 
     public void TriggerGameOver()
@@ -173,7 +200,11 @@ public class GameManager : MonoBehaviour
         PlayDeathSfx();
         isGameOver = true;
         isPaused = false;
-        areControlsReversed = false;
+        ResetActiveGlitch();
+        if (foodSpawner != null)
+        {
+            foodSpawner.ClearFood();
+        }
         UpdateStatusLabel();
         gameUIController.ShowGameOver(true);
     }
@@ -235,6 +266,15 @@ public class GameManager : MonoBehaviour
         {
             int speedSteps = score / foodPerSpeedStep;
             targetMoveInterval -= speedSteps * moveIntervalDecreasePerStep;
+        }
+
+        if (IsGlitchMode() && activeGlitchType == ActiveGlitchType.SpeedUp)
+        {
+            targetMoveInterval *= Mathf.Max(0.1f, speedUpIntervalMultiplier);
+        }
+        else if (IsGlitchMode() && activeGlitchType == ActiveGlitchType.Slowed)
+        {
+            targetMoveInterval *= Mathf.Max(1f, slowDownIntervalMultiplier);
         }
 
         float safeMinInterval = Mathf.Max(0.01f, minMoveInterval);
@@ -357,7 +397,7 @@ public class GameManager : MonoBehaviour
 
     private void SpawnFoodForCurrentSnake()
     {
-        foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
+        foodSpawner.SpawnNormalFood(snakeController.GetOccupiedCells());
     }
 
     private void EnsureAudioSource()
@@ -423,7 +463,6 @@ public class GameManager : MonoBehaviour
             {
                 hasGameStarted = true;
                 isPaused = false;
-                ResetNextReverseControlsTime();
                 UpdateStatusLabel();
             }
 
@@ -437,12 +476,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (!isPaused && IsGlitchMode() && keyboard.gKey.wasPressedThisFrame)
-        {
-            StartReverseControlsGlitch();
-        }
-
-        UpdateGlitchTimers();
+        UpdateActiveGlitch();
     }
 
     private int LoadBestScore()
@@ -456,46 +490,125 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    private void UpdateGlitchTimers()
+    private void UpdateActiveGlitch()
     {
-        if (!IsGlitchMode() || !IsGameplayActive())
+        if (!IsGlitchMode() || !IsGameplayActive() || activeGlitchType == ActiveGlitchType.None)
         {
             return;
         }
 
-        if (areControlsReversed)
+        if (Time.time < activeGlitchEndTime)
         {
-            if (Time.time >= reverseControlsEndTime)
-            {
-                areControlsReversed = false;
-                ResetNextReverseControlsTime();
-                UpdateStatusLabel();
-            }
-
             return;
         }
 
-        if (Time.time >= nextReverseControlsTime)
+        ActiveGlitchType expiredGlitch = activeGlitchType;
+        EndCurrentGlitch();
+
+        if (expiredGlitch == ActiveGlitchType.FakeFood)
+        {
+            SpawnFoodForCurrentSnake();
+        }
+    }
+
+    private bool TryStartRandomGlitchAfterNormalFood()
+    {
+        if (!IsGlitchMode() || activeGlitchType != ActiveGlitchType.None)
+        {
+            return false;
+        }
+
+        float chance = Mathf.Clamp01(glitchTriggerChanceOnFood);
+        if (Random.value > chance)
+        {
+            return false;
+        }
+
+        int glitchPick = Random.Range(0, 4);
+        if (glitchPick == 0)
         {
             StartReverseControlsGlitch();
+            return true;
         }
+
+        if (glitchPick == 1)
+        {
+            StartSpeedGlitch(speedUp: true);
+            return true;
+        }
+
+        if (glitchPick == 2)
+        {
+            StartSpeedGlitch(speedUp: false);
+            return true;
+        }
+
+        return StartFakeFoodGlitch();
     }
 
     private void StartReverseControlsGlitch()
     {
-        if (!IsGlitchMode())
-        {
-            return;
-        }
-
+        activeGlitchType = ActiveGlitchType.ReversedControls;
         areControlsReversed = true;
-        reverseControlsEndTime = Time.time + Mathf.Max(0.1f, reverseControlsDuration);
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, reverseControlsDuration);
         UpdateStatusLabel();
     }
 
-    private void ResetNextReverseControlsTime()
+    private void StartSpeedGlitch(bool speedUp)
     {
-        nextReverseControlsTime = Time.time + Mathf.Max(0.1f, reverseControlsEverySeconds);
+        activeGlitchType = speedUp ? ActiveGlitchType.SpeedUp : ActiveGlitchType.Slowed;
+        areControlsReversed = false;
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, speedGlitchDuration);
+        UpdateStatusLabel();
+    }
+
+    private bool StartFakeFoodGlitch()
+    {
+        bool spawned = foodSpawner.SpawnFakeFood(snakeController.GetOccupiedCells());
+        if (!spawned)
+        {
+            return false;
+        }
+
+        activeGlitchType = ActiveGlitchType.FakeFood;
+        areControlsReversed = false;
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, fakeFoodDuration);
+        UpdateStatusLabel();
+        return true;
+    }
+
+    private void HandleFakeFoodEaten()
+    {
+        PlayFoodEatSfx();
+
+        if (fakeFoodScorePenalty > 0)
+        {
+            score = Mathf.Max(0, score - fakeFoodScorePenalty);
+            gameUIController.SetScore(score);
+        }
+
+        EndCurrentGlitch();
+        SpawnFoodForCurrentSnake();
+    }
+
+    private void EndCurrentGlitch()
+    {
+        if (activeGlitchType == ActiveGlitchType.FakeFood && foodSpawner != null)
+        {
+            foodSpawner.ClearFood();
+        }
+
+        activeGlitchType = ActiveGlitchType.None;
+        areControlsReversed = false;
+        activeGlitchEndTime = 0f;
+        UpdateStatusLabel();
+    }
+
+    private void ResetActiveGlitch()
+    {
+        activeGlitchType = ActiveGlitchType.None;
+        areControlsReversed = false;
+        activeGlitchEndTime = 0f;
     }
 
     private void UpdateStatusLabel()
@@ -524,7 +637,24 @@ public class GameManager : MonoBehaviour
 
         if (IsGlitchMode())
         {
-            string glitchStatus = areControlsReversed ? reversedControlsStatusMessage : glitchModeStatusMessage;
+            string glitchStatus = glitchModeStatusMessage;
+            if (activeGlitchType == ActiveGlitchType.ReversedControls)
+            {
+                glitchStatus = reversedControlsStatusMessage;
+            }
+            else if (activeGlitchType == ActiveGlitchType.SpeedUp)
+            {
+                glitchStatus = speedUpStatusMessage;
+            }
+            else if (activeGlitchType == ActiveGlitchType.Slowed)
+            {
+                glitchStatus = slowedStatusMessage;
+            }
+            else if (activeGlitchType == ActiveGlitchType.FakeFood)
+            {
+                glitchStatus = fakeFoodStatusMessage;
+            }
+
             statusMessage = string.IsNullOrWhiteSpace(statusMessage)
                 ? glitchStatus
                 : statusMessage + "\n" + glitchStatus;

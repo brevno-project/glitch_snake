@@ -3,8 +3,18 @@ using UnityEngine;
 
 public class FoodSpawner : MonoBehaviour
 {
+    public enum SpawnedFoodType
+    {
+        None,
+        Normal,
+        Fake
+    }
+
     [Header("Food")]
     [SerializeField] private GameObject foodPrefab;
+    [SerializeField] private GameObject fakeFoodPrefab;
+    [SerializeField] private bool tintFakeFoodIfNoPrefab = true;
+    [SerializeField] private Color fakeFoodTintColor = new Color(0.95f, 0.35f, 0.95f, 1f);
 
     private GameManager gameManager;
     private GameObject currentFoodInstance;
@@ -12,6 +22,7 @@ public class FoodSpawner : MonoBehaviour
     private int boardHeight;
     private Vector2Int currentFoodGridPosition;
     private bool hasFood;
+    private SpawnedFoodType currentFoodType;
 
     public void Initialize(GameManager manager, int width, int height)
     {
@@ -24,24 +35,40 @@ public class FoodSpawner : MonoBehaviour
 
     public void SpawnFood(IReadOnlyList<Vector2Int> occupiedCells)
     {
+        SpawnNormalFood(occupiedCells);
+    }
+
+    public void SpawnNormalFood(IReadOnlyList<Vector2Int> occupiedCells)
+    {
+        SpawnFoodInternal(occupiedCells, false);
+    }
+
+    public bool SpawnFakeFood(IReadOnlyList<Vector2Int> occupiedCells)
+    {
+        return SpawnFoodInternal(occupiedCells, true);
+    }
+
+    private bool SpawnFoodInternal(IReadOnlyList<Vector2Int> occupiedCells, bool spawnFakeFood)
+    {
         if (foodPrefab == null)
         {
             Debug.LogWarning("FoodSpawner: Food prefab is not assigned yet.");
-            return;
+            return false;
         }
 
         if (!TryGetRandomFreeCell(occupiedCells, out Vector2Int spawnCell))
         {
             Debug.LogWarning("FoodSpawner: Could not find a free cell for food.");
             ClearFood();
-            return;
+            return false;
         }
 
         ClearFood();
 
+        GameObject prefabToSpawn = GetPrefabForCurrentFood(spawnFakeFood);
         currentFoodGridPosition = spawnCell;
         currentFoodInstance = Instantiate(
-            foodPrefab,
+            prefabToSpawn,
             gameManager.GridToWorldPosition(spawnCell),
             Quaternion.identity,
             transform
@@ -53,6 +80,9 @@ public class FoodSpawner : MonoBehaviour
         }
 
         hasFood = true;
+        currentFoodType = spawnFakeFood ? SpawnedFoodType.Fake : SpawnedFoodType.Normal;
+        ApplyFakeFoodTintIfNeeded(spawnFakeFood);
+        return true;
     }
 
     public void ClearFood()
@@ -64,11 +94,30 @@ public class FoodSpawner : MonoBehaviour
         }
 
         hasFood = false;
+        currentFoodType = SpawnedFoodType.None;
     }
 
     public bool IsFoodAtPosition(Vector2Int gridPosition)
     {
         return hasFood && currentFoodGridPosition == gridPosition;
+    }
+
+    public bool TryConsumeFoodAtPosition(Vector2Int gridPosition, out SpawnedFoodType consumedFoodType)
+    {
+        consumedFoodType = SpawnedFoodType.None;
+        if (!IsFoodAtPosition(gridPosition))
+        {
+            return false;
+        }
+
+        consumedFoodType = currentFoodType;
+        ClearFood();
+        return true;
+    }
+
+    public bool HasFood()
+    {
+        return hasFood;
     }
 
     public int GetBoardWidth()
@@ -137,5 +186,39 @@ public class FoodSpawner : MonoBehaviour
         }
 
         return false;
+    }
+
+    private GameObject GetPrefabForCurrentFood(bool spawnFakeFood)
+    {
+        if (!spawnFakeFood)
+        {
+            return foodPrefab;
+        }
+
+        if (fakeFoodPrefab != null)
+        {
+            return fakeFoodPrefab;
+        }
+
+        return foodPrefab;
+    }
+
+    private void ApplyFakeFoodTintIfNeeded(bool spawnFakeFood)
+    {
+        if (!spawnFakeFood || currentFoodInstance == null)
+        {
+            return;
+        }
+
+        if (fakeFoodPrefab != null || !tintFakeFoodIfNoPrefab)
+        {
+            return;
+        }
+
+        SpriteRenderer renderer = currentFoodInstance.GetComponentInChildren<SpriteRenderer>();
+        if (renderer != null)
+        {
+            renderer.color = fakeFoodTintColor;
+        }
     }
 }
