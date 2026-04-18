@@ -886,6 +886,10 @@ MonoBehaviour:
   reverseControlsDuration: 4
   glitchModeStatusMessage: Glitch Mode
   reversedControlsStatusMessage: 'GLITCH: REVERSED'
+  foodEatSfx: {fileID: 8300000, guid: deace74d223030a4fac1ad0162e1c9cc, type: 3}
+  deathSfx: {fileID: 8300000, guid: 42a39544c4ca4fb41b71fbe62d4bd67a, type: 3}
+  foodEatVolume: 0.8
+  deathVolume: 1
   fitCameraToBoardOnStart: 1
   cameraPadding: 1.95
   showBoardBorder: 1

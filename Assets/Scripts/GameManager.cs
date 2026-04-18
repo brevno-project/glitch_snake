@@ -26,6 +26,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private string glitchModeStatusMessage = "Glitch Mode";
     [SerializeField] private string reversedControlsStatusMessage = "GLITCH: REVERSED";
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip foodEatSfx;
+    [SerializeField] private AudioClip deathSfx;
+    [SerializeField] [Range(0f, 1f)] private float foodEatVolume = 0.8f;
+    [SerializeField] [Range(0f, 1f)] private float deathVolume = 1f;
+
     [Header("Camera")]
     [SerializeField] private bool fitCameraToBoardOnStart = true;
     [SerializeField] private float cameraPadding = 0.5f;
@@ -52,11 +58,13 @@ public class GameManager : MonoBehaviour
     private int score;
     private int bestScore;
     private LineRenderer boardBorderLine;
+    private AudioSource sfxAudioSource;
 
     private const string BestScorePrefsKey = "GlitchSnake_BestScore";
 
     private void Start()
     {
+        EnsureAudioSource();
         FitMainCameraToBoard();
         SetupBoardBorderVisual();
         InitializeSceneFoundation();
@@ -125,6 +133,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        PlayFoodEatSfx();
+
         score += 1;
         if (score > bestScore)
         {
@@ -160,6 +170,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        PlayDeathSfx();
         isGameOver = true;
         isPaused = false;
         areControlsReversed = false;
@@ -347,6 +358,50 @@ public class GameManager : MonoBehaviour
     private void SpawnFoodForCurrentSnake()
     {
         foodSpawner.SpawnFood(snakeController.GetOccupiedCells());
+    }
+
+    private void EnsureAudioSource()
+    {
+        sfxAudioSource = GetComponent<AudioSource>();
+        if (sfxAudioSource == null)
+        {
+            sfxAudioSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        sfxAudioSource.enabled = true;
+        sfxAudioSource.mute = false;
+        sfxAudioSource.volume = 1f;
+        sfxAudioSource.playOnAwake = false;
+        sfxAudioSource.loop = false;
+        sfxAudioSource.spatialBlend = 0f;
+    }
+
+    private void PlayFoodEatSfx()
+    {
+        if (foodEatSfx == null || sfxAudioSource == null)
+        {
+            return;
+        }
+
+        if (!foodEatSfx.preloadAudioData && !foodEatSfx.loadInBackground)
+        {
+            foodEatSfx.LoadAudioData();
+        }
+        sfxAudioSource.PlayOneShot(foodEatSfx, Mathf.Clamp01(foodEatVolume));
+    }
+
+    private void PlayDeathSfx()
+    {
+        if (deathSfx == null || sfxAudioSource == null)
+        {
+            return;
+        }
+
+        if (!deathSfx.preloadAudioData && !deathSfx.loadInBackground)
+        {
+            deathSfx.LoadAudioData();
+        }
+        sfxAudioSource.PlayOneShot(deathSfx, Mathf.Clamp01(deathVolume));
     }
 
     private void Update()
