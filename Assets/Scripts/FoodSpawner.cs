@@ -12,9 +12,6 @@ public class FoodSpawner : MonoBehaviour
 
     [Header("Food")]
     [SerializeField] private GameObject foodPrefab;
-    [SerializeField] private GameObject fakeFoodPrefab;
-    [SerializeField] private bool tintFakeFoodIfNoPrefab = true;
-    [SerializeField] private Color fakeFoodTintColor = new Color(0.95f, 0.35f, 0.95f, 1f);
 
     private GameManager gameManager;
     private GameObject currentFoodInstance;
@@ -65,10 +62,9 @@ public class FoodSpawner : MonoBehaviour
 
         ClearFood();
 
-        GameObject prefabToSpawn = GetPrefabForCurrentFood(spawnFakeFood);
         currentFoodGridPosition = spawnCell;
         currentFoodInstance = Instantiate(
-            prefabToSpawn,
+            foodPrefab,
             gameManager.GridToWorldPosition(spawnCell),
             Quaternion.identity,
             transform
@@ -81,7 +77,6 @@ public class FoodSpawner : MonoBehaviour
 
         hasFood = true;
         currentFoodType = spawnFakeFood ? SpawnedFoodType.Fake : SpawnedFoodType.Normal;
-        ApplyFakeFoodTintIfNeeded(spawnFakeFood);
         return true;
     }
 
@@ -188,37 +183,4 @@ public class FoodSpawner : MonoBehaviour
         return false;
     }
 
-    private GameObject GetPrefabForCurrentFood(bool spawnFakeFood)
-    {
-        if (!spawnFakeFood)
-        {
-            return foodPrefab;
-        }
-
-        if (fakeFoodPrefab != null)
-        {
-            return fakeFoodPrefab;
-        }
-
-        return foodPrefab;
-    }
-
-    private void ApplyFakeFoodTintIfNeeded(bool spawnFakeFood)
-    {
-        if (!spawnFakeFood || currentFoodInstance == null)
-        {
-            return;
-        }
-
-        if (fakeFoodPrefab != null || !tintFakeFoodIfNoPrefab)
-        {
-            return;
-        }
-
-        SpriteRenderer renderer = currentFoodInstance.GetComponentInChildren<SpriteRenderer>();
-        if (renderer != null)
-        {
-            renderer.color = fakeFoodTintColor;
-        }
-    }
 }

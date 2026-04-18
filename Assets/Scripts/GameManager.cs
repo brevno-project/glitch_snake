@@ -9,6 +9,7 @@ public class GameManager : MonoBehaviour
         ReversedControls,
         SpeedUp,
         Slowed,
+        Teleport,
         FakeFood
     }
 
@@ -36,12 +37,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Min(0.1f)] private float speedUpIntervalMultiplier = 0.65f;
     [SerializeField] [Min(1f)] private float slowDownIntervalMultiplier = 1.45f;
     [SerializeField] private float fakeFoodDuration = 5f;
+    [SerializeField] private float teleportStatusDuration = 1.1f;
     [SerializeField] [Min(0)] private int fakeFoodScorePenalty = 1;
     [SerializeField] private string glitchModeStatusMessage = "Glitch Mode";
     [SerializeField] private string reversedControlsStatusMessage = "GLITCH: REVERSED";
     [SerializeField] private string speedUpStatusMessage = "GLITCH: SPEED UP";
     [SerializeField] private string slowedStatusMessage = "GLITCH: SLOWED";
-    [SerializeField] private string fakeFoodStatusMessage = "GLITCH: FAKE FOOD";
+    [SerializeField] private string teleportStatusMessage = "GLITCH: TELEPORT";
+    [SerializeField] private string fakeFoodStatusMessage = "GLITCH: TRAP";
 
     [Header("Audio")]
     [SerializeField] private AudioClip foodEatSfx;
@@ -52,6 +55,12 @@ public class GameManager : MonoBehaviour
     [Header("Camera")]
     [SerializeField] private bool fitCameraToBoardOnStart = true;
     [SerializeField] private float cameraPadding = 0.5f;
+
+    [Header("Glitch Screen Effect")]
+    [SerializeField] private bool enableGlitchScreenFlash = true;
+    [SerializeField] private Color glitchFlashColor = new Color(0.68f, 0.25f, 0.9f, 1f);
+    [SerializeField] [Range(0.05f, 0.6f)] private float glitchFlashDuration = 0.18f;
+    [SerializeField] [Range(0f, 1f)] private float glitchFlashStrength = 0.35f;
 
     [Header("Border Visual")]
     [SerializeField] private bool showBoardBorder = true;
@@ -76,12 +85,19 @@ public class GameManager : MonoBehaviour
     private int bestScore;
     private LineRenderer boardBorderLine;
     private AudioSource sfxAudioSource;
+    private Camera cachedMainCamera;
+    private Color baseCameraBackgroundColor;
+    private bool hasBaseCameraBackgroundColor;
+    private float glitchFlashStartTime;
+    private float glitchFlashEndTime;
+    private float activeGlitchFlashStrength;
 
     private const string BestScorePrefsKey = "GlitchSnake_BestScore";
 
     private void Start()
     {
         EnsureAudioSource();
+        CacheMainCamera();
         FitMainCameraToBoard();
         SetupBoardBorderVisual();
         InitializeSceneFoundation();
@@ -201,6 +217,7 @@ public class GameManager : MonoBehaviour
         isGameOver = true;
         isPaused = false;
         ResetActiveGlitch();
+        StopGlitchScreenFlash();
         if (foodSpawner != null)
         {
             foodSpawner.ClearFood();
@@ -400,6 +417,18 @@ public class GameManager : MonoBehaviour
         foodSpawner.SpawnNormalFood(snakeController.GetOccupiedCells());
     }
 
+    private void CacheMainCamera()
+    {
+        cachedMainCamera = Camera.main;
+        if (cachedMainCamera == null)
+        {
+            return;
+        }
+
+        baseCameraBackgroundColor = cachedMainCamera.backgroundColor;
+        hasBaseCameraBackgroundColor = true;
+    }
+
     private void EnsureAudioSource()
     {
         sfxAudioSource = GetComponent<AudioSource>();
@@ -444,8 +473,75 @@ public class GameManager : MonoBehaviour
         sfxAudioSource.PlayOneShot(deathSfx, Mathf.Clamp01(deathVolume));
     }
 
+    private void TriggerGlitchScreenFlash(float strengthMultiplier = 1f)
+    {
+        if (!enableGlitchScreenFlash)
+        {
+            return;
+        }
+
+        if (cachedMainCamera == null)
+        {
+            CacheMainCamera();
+        }
+
+        if (cachedMainCamera == null)
+        {
+            return;
+        }
+
+        if (!hasBaseCameraBackgroundColor)
+        {
+            baseCameraBackgroundColor = cachedMainCamera.backgroundColor;
+            hasBaseCameraBackgroundColor = true;
+        }
+
+        float duration = Mathf.Max(0.05f, glitchFlashDuration);
+        glitchFlashStartTime = Time.time;
+        glitchFlashEndTime = Time.time + duration;
+        activeGlitchFlashStrength = Mathf.Clamp01(glitchFlashStrength * Mathf.Max(0f, strengthMultiplier));
+    }
+
+    private void UpdateGlitchScreenFlash()
+    {
+        if (cachedMainCamera == null)
+        {
+            CacheMainCamera();
+        }
+
+        if (cachedMainCamera == null || !hasBaseCameraBackgroundColor)
+        {
+            return;
+        }
+
+        if (Time.time >= glitchFlashEndTime)
+        {
+            cachedMainCamera.backgroundColor = baseCameraBackgroundColor;
+            return;
+        }
+
+        float totalDuration = Mathf.Max(0.05f, glitchFlashEndTime - glitchFlashStartTime);
+        float normalizedTime = Mathf.Clamp01((Time.time - glitchFlashStartTime) / totalDuration);
+        float pulse = 1f - Mathf.Abs((normalizedTime * 2f) - 1f);
+        float blend = pulse * Mathf.Clamp01(activeGlitchFlashStrength);
+        cachedMainCamera.backgroundColor = Color.Lerp(baseCameraBackgroundColor, glitchFlashColor, blend);
+    }
+
+    private void StopGlitchScreenFlash()
+    {
+        glitchFlashStartTime = 0f;
+        glitchFlashEndTime = 0f;
+        activeGlitchFlashStrength = 0f;
+        if (cachedMainCamera != null && hasBaseCameraBackgroundColor)
+        {
+            cachedMainCamera.backgroundColor = baseCameraBackgroundColor;
+        }
+    }
+
     private void Update()
     {
+        UpdateGlitchScreenFlash();
+
         if (isGameOver)
         {
             return;
@@ -524,7 +620,84 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
-        int glitchPick = Random.Range(0, 4);
+        return StartRandomGlitch(includeFakeFood: true);
+    }
+
+    private void StartReverseControlsGlitch()
+    {
+        activeGlitchType = ActiveGlitchType.ReversedControls;
+        areControlsReversed = true;
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, reverseControlsDuration);
+        TriggerGlitchScreenFlash(1f);
+        UpdateStatusLabel();
+    }
+
+    private void StartSpeedGlitch(bool speedUp)
+    {
+        activeGlitchType = speedUp ? ActiveGlitchType.SpeedUp : ActiveGlitchType.Slowed;
+        areControlsReversed = false;
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, speedGlitchDuration);
+        TriggerGlitchScreenFlash(1f);
+        UpdateStatusLabel();
+    }
+
+    private bool StartTeleportGlitch()
+    {
+        if (snakeController == null || !snakeController.TryTeleportToRandomSafePosition())
+        {
+            return false;
+        }
+
+        activeGlitchType = ActiveGlitchType.Teleport;
+        areControlsReversed = false;
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, teleportStatusDuration);
+        TriggerGlitchScreenFlash(1.15f);
+        UpdateStatusLabel();
+        return true;
+    }
+
+    private bool StartFakeFoodGlitch()
+    {
+        bool spawned = foodSpawner.SpawnFakeFood(snakeController.GetOccupiedCells());
+        if (!spawned)
+        {
+            return false;
+        }
+
+        activeGlitchType = ActiveGlitchType.FakeFood;
+        areControlsReversed = false;
+        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, fakeFoodDuration);
+        TriggerGlitchScreenFlash(1f);
+        UpdateStatusLabel();
+        return true;
+    }
+
+    private void HandleFakeFoodEaten()
+    {
+        PlayFoodEatSfx();
+
+        if (fakeFoodScorePenalty > 0)
+        {
+            score = Mathf.Max(0, score - fakeFoodScorePenalty);
+            gameUIController.SetScore(score);
+        }
+
+        TriggerGlitchScreenFlash(1.3f);
+        EndCurrentGlitch();
+        SpawnFoodForCurrentSnake();
+        StartRandomGlitch(includeFakeFood: false);
+    }
+
+    private bool StartRandomGlitch(bool includeFakeFood)
+    {
+        if (!IsGlitchMode() || activeGlitchType != ActiveGlitchType.None)
+        {
+            return false;
+        }
+
+        int optionsCount = includeFakeFood ? 5 : 4;
+        int glitchPick = Random.Range(0, optionsCount);
+
         if (glitchPick == 0)
         {
             StartReverseControlsGlitch();
@@ -543,76 +716,12 @@ public class GameManager : MonoBehaviour
             return true;
         }
 
+        if (glitchPick == 3)
+        {
+            return StartTeleportGlitch();
+        }
+
         return StartFakeFoodGlitch();
-    }
-
-    private void StartReverseControlsGlitch()
-    {
-        activeGlitchType = ActiveGlitchType.ReversedControls;
-        areControlsReversed = true;
-        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, reverseControlsDuration);
-        UpdateStatusLabel();
-    }
-
-    private void StartSpeedGlitch(bool speedUp)
-    {
-        activeGlitchType = speedUp ? ActiveGlitchType.SpeedUp : ActiveGlitchType.Slowed;
-        areControlsReversed = false;
-        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, speedGlitchDuration);
-        UpdateStatusLabel();
-    }
-
-    private bool StartFakeFoodGlitch()
-    {
-        bool spawned = foodSpawner.SpawnFakeFood(snakeController.GetOccupiedCells());
-        if (!spawned)
-        {
-            return false;
-        }
-
-        activeGlitchType = ActiveGlitchType.FakeFood;
-        areControlsReversed = false;
-        activeGlitchEndTime = Time.time + Mathf.Max(0.1f, fakeFoodDuration);
-        UpdateStatusLabel();
-        return true;
-    }
-
-    private void HandleFakeFoodEaten()
-    {
-        PlayFoodEatSfx();
-
-        if (fakeFoodScorePenalty > 0)
-        {
-            score = Mathf.Max(0, score - fakeFoodScorePenalty);
-            gameUIController.SetScore(score);
-        }
-
-        EndCurrentGlitch();
-        SpawnFoodForCurrentSnake();
-        StartRandomTrapFollowupGlitch();
-    }
-
-    private void StartRandomTrapFollowupGlitch()
-    {
-        if (!IsGlitchMode() || activeGlitchType != ActiveGlitchType.None)
-        {
-            return;
-        }
-
-        int glitchPick = Random.Range(0, 3);
-        if (glitchPick == 0)
-        {
-            StartReverseControlsGlitch();
-            return;
-        }
-
-        if (glitchPick == 1)
-        {
-            StartSpeedGlitch(speedUp: true);
-            return;
-        }
-
-        StartSpeedGlitch(speedUp: false);
     }
 
     private void EndCurrentGlitch()
@@ -673,6 +782,10 @@ public class GameManager : MonoBehaviour
             else if (activeGlitchType == ActiveGlitchType.Slowed)
             {
                 glitchStatus = slowedStatusMessage;
+            }
+            else if (activeGlitchType == ActiveGlitchType.Teleport)
+            {
+                glitchStatus = teleportStatusMessage;
             }
             else if (activeGlitchType == ActiveGlitchType.FakeFood)
             {

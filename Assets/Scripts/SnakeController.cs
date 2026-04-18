@@ -277,12 +277,78 @@ public class SnakeController : MonoBehaviour
         return occupiedCells;
     }
 
+    public bool TryTeleportToRandomSafePosition(int maxAttempts = 120)
+    {
+        if (gameManager == null || occupiedCells.Count == 0)
+        {
+            return false;
+        }
+
+        Vector2Int currentHead = occupiedCells[0];
+        int boardWidth = gameManager.GetBoardWidth();
+        int boardHeight = gameManager.GetBoardHeight();
+        int attempts = Mathf.Max(1, maxAttempts);
+
+        for (int i = 0; i < attempts; i++)
+        {
+            Vector2Int targetHead = new Vector2Int(
+                Random.Range(0, boardWidth),
+                Random.Range(0, boardHeight)
+            );
+
+            Vector2Int offset = targetHead - currentHead;
+            if (offset == Vector2Int.zero)
+            {
+                continue;
+            }
+
+            if (!CanApplyTeleportOffset(offset, boardWidth, boardHeight))
+            {
+                continue;
+            }
+
+            ApplyTeleportOffset(offset);
+            return true;
+        }
+
+        return false;
+    }
+
     private bool IsOutsideBoard(Vector2Int gridPosition)
     {
         return gridPosition.x < 0
             || gridPosition.x >= gameManager.GetBoardWidth()
             || gridPosition.y < 0
             || gridPosition.y >= gameManager.GetBoardHeight();
+    }
+
+    private bool CanApplyTeleportOffset(Vector2Int offset, int boardWidth, int boardHeight)
+    {
+        for (int i = 0; i < occupiedCells.Count; i++)
+        {
+            Vector2Int translatedCell = occupiedCells[i] + offset;
+            if (translatedCell.x < 0
+                || translatedCell.x >= boardWidth
+                || translatedCell.y < 0
+                || translatedCell.y >= boardHeight)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void ApplyTeleportOffset(Vector2Int offset)
+    {
+        for (int i = 0; i < occupiedCells.Count; i++)
+        {
+            occupiedCells[i] += offset;
+        }
+
+        currentGridPosition = occupiedCells[0];
+        transform.position = GridToWorld(currentGridPosition);
+        UpdateBodySegments();
     }
 
     private bool IsSelfCollision()
