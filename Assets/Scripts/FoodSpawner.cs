@@ -14,12 +14,17 @@ public class FoodSpawner : MonoBehaviour
     [SerializeField] private GameObject foodPrefab;
 
     private GameManager gameManager;
-    private GameObject currentFoodInstance;
     private int boardWidth;
     private int boardHeight;
-    private Vector2Int currentFoodGridPosition;
-    private bool hasFood;
-    private SpawnedFoodType currentFoodType;
+
+    private readonly List<FoodEntry> activeFoodEntries = new List<FoodEntry>();
+
+    private sealed class FoodEntry
+    {
+        public GameObject Instance;
+        public Vector2Int GridPosition;
+        public SpawnedFoodType Type;
+    }
 
     public void Initialize(GameManager manager, int width, int height)
     {
@@ -35,17 +40,42 @@ public class FoodSpawner : MonoBehaviour
         SpawnNormalFood(occupiedCells);
     }
 
-    public void SpawnNormalFood(IReadOnlyList<Vector2Int> occupiedCells)
+    public bool SpawnNormalFood(IReadOnlyList<Vector2Int> occupiedCells)
     {
-        SpawnFoodInternal(occupiedCells, false);
+        return SpawnFoodInternal(occupiedCells, SpawnedFoodType.Normal);
+    }
+
+    public int EnsureNormalFoodCount(IReadOnlyList<Vector2Int> occupiedCells, int targetCount)
+    {
+        targetCount = Mathf.Max(0, targetCount);
+        int currentNormalCount = GetFoodCount(SpawnedFoodType.Normal);
+        int spawnedCount = 0;
+
+        while (currentNormalCount < targetCount)
+        {
+            if (!SpawnNormalFood(occupiedCells))
+            {
+                break;
+            }
+
+            currentNormalCount++;
+            spawnedCount++;
+        }
+
+        return spawnedCount;
     }
 
     public bool SpawnFakeFood(IReadOnlyList<Vector2Int> occupiedCells)
     {
-        return SpawnFoodInternal(occupiedCells, true);
+        if (HasFoodType(SpawnedFoodType.Fake))
+        {
+            return false;
+        }
+
+        return SpawnFoodInternal(occupiedCells, SpawnedFoodType.Fake);
     }
 
-    private bool SpawnFoodInternal(IReadOnlyList<Vector2Int> occupiedCells, bool spawnFakeFood)
+    private bool SpawnFoodInternal(IReadOnlyList<Vector2Int> occupiedCells, SpawnedFoodType foodType)
     {
         if (foodPrefab == null)
         {
@@ -56,63 +86,116 @@ public class FoodSpawner : MonoBehaviour
         if (!TryGetRandomFreeCell(occupiedCells, out Vector2Int spawnCell))
         {
             Debug.LogWarning("FoodSpawner: Could not find a free cell for food.");
-            ClearFood();
             return false;
         }
 
-        ClearFood();
-
-        currentFoodGridPosition = spawnCell;
-        currentFoodInstance = Instantiate(
+        GameObject foodInstance = Instantiate(
             foodPrefab,
             gameManager.GridToWorldPosition(spawnCell),
             Quaternion.identity,
             transform
         );
 
-        if (currentFoodInstance.GetComponent<FoodVisualAnimator>() == null)
+        if (foodInstance.GetComponent<FoodVisualAnimator>() == null)
         {
-            currentFoodInstance.AddComponent<FoodVisualAnimator>();
+            foodInstance.AddComponent<FoodVisualAnimator>();
         }
 
-        hasFood = true;
-        currentFoodType = spawnFakeFood ? SpawnedFoodType.Fake : SpawnedFoodType.Normal;
+        activeFoodEntries.Add(new FoodEntry
+        {
+            Instance = foodInstance,
+            GridPosition = spawnCell,
+            Type = foodType
+        });
+
         return true;
     }
 
     public void ClearFood()
     {
-        if (currentFoodInstance != null)
+        for (int i = 0; i < activeFoodEntries.Count; i++)
         {
-            Destroy(currentFoodInstance);
-            currentFoodInstance = null;
+            if (activeFoodEntries[i].Instance != null)
+            {
+                Destroy(activeFoodEntries[i].Instance);
+            }
         }
 
-        hasFood = false;
-        currentFoodType = SpawnedFoodType.None;
+        activeFoodEntries.Clear();
     }
 
-    public bool IsFoodAtPosition(Vector2Int gridPosition)
+    public void ClearFoodType(SpawnedFoodType foodType)
     {
-        return hasFood && currentFoodGridPosition == gridPosition;
+        for (int i = activeFoodEntries.Count - 1; i >= 0; i--)
+        {
+            if (activeFoodEntries[i].Type != foodType)
+            {
+                continue;
+            }
+
+            if (activeFoodEntries[i].Instance != null)
+            {
+                Destroy(activeFoodEntries[i].Instance);
+            }
+
+            activeFoodEntries.RemoveAt(i);
+        }
     }
 
     public bool TryConsumeFoodAtPosition(Vector2Int gridPosition, out SpawnedFoodType consumedFoodType)
     {
         consumedFoodType = SpawnedFoodType.None;
-        if (!IsFoodAtPosition(gridPosition))
+        for (int i = 0; i < activeFoodEntries.Count; i++)
         {
-            return false;
+            FoodEntry entry = activeFoodEntries[i];
+            if (entry.GridPosition != gridPosition)
+            {
+                continue;
+            }
+
+            consumedFoodType = entry.Type;
+            if (entry.Instance != null)
+            {
+                Destroy(entry.Instance);
+            }
+
+            activeFoodEntries.RemoveAt(i);
+            return true;
         }
 
-        consumedFoodType = currentFoodType;
-        ClearFood();
-        return true;
+        return false;
     }
 
     public bool HasFood()
     {
-        return hasFood;
+        return activeFoodEntries.Count > 0;
+    }
+
+    public bool HasFoodType(SpawnedFoodType foodType)
+    {
+        for (int i = 0; i < activeFoodEntries.Count; i++)
+        {
+            if (activeFoodEntries[i].Type == foodType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public int GetFoodCount(SpawnedFoodType foodType)
+    {
+        int count = 0;
+        for (int i = 0; i < activeFoodEntries.Count; i++)
+        {
+            if (activeFoodEntries[i].Type == foodType)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     public int GetBoardWidth()
@@ -132,7 +215,7 @@ public class FoodSpawner : MonoBehaviour
 
     private bool TryGetRandomFreeCell(IReadOnlyList<Vector2Int> occupiedCells, out Vector2Int freeCell)
     {
-        int maxAttempts = Mathf.Max(10, boardWidth * boardHeight * 2);
+        int maxAttempts = Mathf.Max(10, boardWidth * boardHeight * 3);
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             Vector2Int candidate = new Vector2Int(
@@ -140,7 +223,7 @@ public class FoodSpawner : MonoBehaviour
                 Random.Range(0, boardHeight)
             );
 
-            if (!IsCellOccupied(candidate, occupiedCells))
+            if (!IsCellOccupied(candidate, occupiedCells) && !IsCellOccupiedByFood(candidate))
             {
                 freeCell = candidate;
                 return true;
@@ -153,7 +236,7 @@ public class FoodSpawner : MonoBehaviour
             for (int x = 0; x < boardWidth; x++)
             {
                 Vector2Int candidate = new Vector2Int(x, y);
-                if (!IsCellOccupied(candidate, occupiedCells))
+                if (!IsCellOccupied(candidate, occupiedCells) && !IsCellOccupiedByFood(candidate))
                 {
                     freeCell = candidate;
                     return true;
@@ -175,6 +258,19 @@ public class FoodSpawner : MonoBehaviour
         for (int i = 0; i < occupiedCells.Count; i++)
         {
             if (occupiedCells[i] == cell)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsCellOccupiedByFood(Vector2Int cell)
+    {
+        for (int i = 0; i < activeFoodEntries.Count; i++)
+        {
+            if (activeFoodEntries[i].GridPosition == cell)
             {
                 return true;
             }

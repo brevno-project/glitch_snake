@@ -29,6 +29,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool waitForInputToStart = true;
     [SerializeField] private string startStatusMessage = "Press any key to start";
     [SerializeField] private string pausedStatusMessage = "Paused (P/Esc)";
+    [SerializeField] [Min(1)] private int classicModeFoodCount = 1;
+    [SerializeField] [Min(1)] private int glitchModeFoodCount = 2;
 
     [Header("Glitch Mode")]
     [SerializeField] [Range(0f, 1f)] private float glitchTriggerChanceOnFood = 0.4f;
@@ -45,6 +47,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private string slowedStatusMessage = "GLITCH: SLOWED";
     [SerializeField] private string teleportStatusMessage = "GLITCH: TELEPORT";
     [SerializeField] private string fakeFoodStatusMessage = "GLITCH: TRAP";
+    [SerializeField] private float glitchAnnouncementDuration = 0.9f;
 
     [Header("Audio")]
     [SerializeField] private AudioClip foodEatSfx;
@@ -130,7 +133,7 @@ public class GameManager : MonoBehaviour
         UpdateStatusLabel();
         gameUIController.ShowGameOver(false);
 
-        SpawnFoodForCurrentSnake();
+        EnsureNormalFoodCount();
     }
 
     private bool ValidateReferences()
@@ -202,7 +205,7 @@ public class GameManager : MonoBehaviour
         bool startedGlitch = TryStartRandomGlitchAfterNormalFood();
         if (!startedGlitch || activeGlitchType != ActiveGlitchType.FakeFood)
         {
-            SpawnFoodForCurrentSnake();
+            EnsureNormalFoodCount();
         }
     }
 
@@ -417,6 +420,23 @@ public class GameManager : MonoBehaviour
         foodSpawner.SpawnNormalFood(snakeController.GetOccupiedCells());
     }
 
+    private void EnsureNormalFoodCount()
+    {
+        if (foodSpawner == null || snakeController == null)
+        {
+            return;
+        }
+
+        foodSpawner.EnsureNormalFoodCount(snakeController.GetOccupiedCells(), GetTargetNormalFoodCount());
+    }
+
+    private int GetTargetNormalFoodCount()
+    {
+        return IsGlitchMode()
+            ? Mathf.Max(1, glitchModeFoodCount)
+            : Mathf.Max(1, classicModeFoodCount);
+    }
+
     private void CacheMainCamera()
     {
         cachedMainCamera = Camera.main;
@@ -603,7 +623,7 @@ public class GameManager : MonoBehaviour
 
         if (expiredGlitch == ActiveGlitchType.FakeFood)
         {
-            SpawnFoodForCurrentSnake();
+            EnsureNormalFoodCount();
         }
     }
 
@@ -629,6 +649,7 @@ public class GameManager : MonoBehaviour
         areControlsReversed = true;
         activeGlitchEndTime = Time.time + Mathf.Max(0.1f, reverseControlsDuration);
         TriggerGlitchScreenFlash(1f);
+        ShowGlitchAnnouncement(reversedControlsStatusMessage);
         UpdateStatusLabel();
     }
 
@@ -638,6 +659,7 @@ public class GameManager : MonoBehaviour
         areControlsReversed = false;
         activeGlitchEndTime = Time.time + Mathf.Max(0.1f, speedGlitchDuration);
         TriggerGlitchScreenFlash(1f);
+        ShowGlitchAnnouncement(speedUp ? speedUpStatusMessage : slowedStatusMessage);
         UpdateStatusLabel();
     }
 
@@ -652,6 +674,7 @@ public class GameManager : MonoBehaviour
         areControlsReversed = false;
         activeGlitchEndTime = Time.time + Mathf.Max(0.1f, teleportStatusDuration);
         TriggerGlitchScreenFlash(1.15f);
+        ShowGlitchAnnouncement(teleportStatusMessage);
         UpdateStatusLabel();
         return true;
     }
@@ -668,6 +691,7 @@ public class GameManager : MonoBehaviour
         areControlsReversed = false;
         activeGlitchEndTime = Time.time + Mathf.Max(0.1f, fakeFoodDuration);
         TriggerGlitchScreenFlash(1f);
+        ShowGlitchAnnouncement(fakeFoodStatusMessage);
         UpdateStatusLabel();
         return true;
     }
@@ -684,7 +708,7 @@ public class GameManager : MonoBehaviour
 
         TriggerGlitchScreenFlash(1.3f);
         EndCurrentGlitch();
-        SpawnFoodForCurrentSnake();
+        EnsureNormalFoodCount();
         StartRandomGlitch(includeFakeFood: false);
     }
 
@@ -696,39 +720,65 @@ public class GameManager : MonoBehaviour
         }
 
         int optionsCount = includeFakeFood ? 5 : 4;
-        int glitchPick = Random.Range(0, optionsCount);
+        bool[] attemptedOption = new bool[optionsCount];
 
-        if (glitchPick == 0)
+        for (int attempt = 0; attempt < optionsCount; attempt++)
+        {
+            int glitchPick = Random.Range(0, optionsCount);
+            while (attemptedOption[glitchPick])
+            {
+                glitchPick = (glitchPick + 1) % optionsCount;
+            }
+
+            attemptedOption[glitchPick] = true;
+            bool started = TryStartGlitchByIndex(glitchPick, includeFakeFood);
+            if (started)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryStartGlitchByIndex(int glitchIndex, bool includeFakeFood)
+    {
+        if (glitchIndex == 0)
         {
             StartReverseControlsGlitch();
             return true;
         }
 
-        if (glitchPick == 1)
+        if (glitchIndex == 1)
         {
             StartSpeedGlitch(speedUp: true);
             return true;
         }
 
-        if (glitchPick == 2)
+        if (glitchIndex == 2)
         {
             StartSpeedGlitch(speedUp: false);
             return true;
         }
 
-        if (glitchPick == 3)
+        if (glitchIndex == 3)
         {
             return StartTeleportGlitch();
         }
 
-        return StartFakeFoodGlitch();
+        if (includeFakeFood)
+        {
+            return StartFakeFoodGlitch();
+        }
+
+        return false;
     }
 
     private void EndCurrentGlitch()
     {
         if (activeGlitchType == ActiveGlitchType.FakeFood && foodSpawner != null)
         {
-            foodSpawner.ClearFood();
+            foodSpawner.ClearFoodType(FoodSpawner.SpawnedFoodType.Fake);
         }
 
         activeGlitchType = ActiveGlitchType.None;
@@ -742,6 +792,16 @@ public class GameManager : MonoBehaviour
         activeGlitchType = ActiveGlitchType.None;
         areControlsReversed = false;
         activeGlitchEndTime = 0f;
+    }
+
+    private void ShowGlitchAnnouncement(string message)
+    {
+        if (gameUIController == null)
+        {
+            return;
+        }
+
+        gameUIController.ShowGlitchAnnouncement(message, glitchAnnouncementDuration);
     }
 
     private void UpdateStatusLabel()
