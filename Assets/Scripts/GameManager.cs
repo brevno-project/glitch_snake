@@ -589,6 +589,30 @@ public class GameManager : MonoBehaviour
 
         EndCurrentGlitch();
         SpawnFoodForCurrentSnake();
+        StartRandomTrapFollowupGlitch();
+    }
+
+    private void StartRandomTrapFollowupGlitch()
+    {
+        if (!IsGlitchMode() || activeGlitchType != ActiveGlitchType.None)
+        {
+            return;
+        }
+
+        int glitchPick = Random.Range(0, 3);
+        if (glitchPick == 0)
+        {
+            StartReverseControlsGlitch();
+            return;
+        }
+
+        if (glitchPick == 1)
+        {
+            StartSpeedGlitch(speedUp: true);
+            return;
+        }
+
+        StartSpeedGlitch(speedUp: false);
     }
 
     private void EndCurrentGlitch()
