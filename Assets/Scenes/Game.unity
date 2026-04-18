@@ -878,9 +878,14 @@ MonoBehaviour:
   foodPerSpeedStep: 6
   moveIntervalDecreasePerStep: 0.006
   minMoveInterval: 0.1
+  gameMode: 0
   waitForInputToStart: 1
   startStatusMessage: PRESS ANY KEY TO START
   pausedStatusMessage: PAUSED (P/ESC)
+  reverseControlsEverySeconds: 8
+  reverseControlsDuration: 4
+  glitchModeStatusMessage: Glitch Mode
+  reversedControlsStatusMessage: 'GLITCH: REVERSED'
   fitCameraToBoardOnStart: 1
   cameraPadding: 1.95
   showBoardBorder: 1
@@ -1200,30 +1205,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SnakeController
   startGridPosition: {x: 0, y: 0}
   startDirection: {x: 1, y: 0}
+  startLength: 1
   tintBodySegments: 0
   bodySegmentColor: {r: 0.3764706, g: 0.44313726, b: 0.5411765, a: 1}
   bodySpriteOverride: {fileID: 0}
-  bodySegmentScale: 1.05
+  bodySegmentScale: 1
   tailSegmentScale: 1
   taperBodyTowardsTail: 0
   bodySortingOrderOffset: -1
-  cornerSegmentScaleMultiplier: 1.02
+  cornerSegmentScaleMultiplier: 0.88
+  autoNormalizeBodyThickness: 1
   useDirectionalSprites: 1
-  bodyHorizontalSprite: {fileID: 5183476676852997877, guid: 85fc6dcaf37d03947b3264f143658e3d, type: 3}
-  bodyVerticalSprite: {fileID: -8697133744877224016, guid: 7f7c7ec51ec213745b66729aea0e7c91, type: 3}
-  bodyTopLeftSprite: {fileID: 2999098643290886539, guid: ba6a74d7f82acbb45aab5d6d82eb7b21, type: 3}
-  bodyTopRightSprite: {fileID: -4986953961950147090, guid: 074adc98a9701c246b50a9a280457002, type: 3}
-  bodyBottomLeftSprite: {fileID: 8171884408360701465, guid: d3b99baa8295c1947801116f74799300, type: 3}
-  bodyBottomRightSprite: {fileID: -5512783819148346509, guid: 7455d39463de8914291fb077e69e1afb, type: 3}
-  tailUpSprite: {fileID: 2750249231403333431, guid: 2a173d4fa33404047bc7623821c28dee, type: 3}
-  tailDownSprite: {fileID: -444241385568439413, guid: c668b9deff7c57f478ec1db4830f973d, type: 3}
-  tailLeftSprite: {fileID: -2542272835747916194, guid: 647f0b7f86e27074fb690bf6e26e0da1, type: 3}
-  tailRightSprite: {fileID: -6108097152939252179, guid: 942b0ae525f1ca44d83d6bbf75cf031f, type: 3}
-  headUpSprite: {fileID: -3252757596025353577, guid: 21e017223b2ebf747b24d8dd2830eb53, type: 3}
-  headDownSprite: {fileID: -6854801067047936884, guid: 5f8dc9b495c263e42add89d0df5e31c5, type: 3}
-  headLeftSprite: {fileID: -6702244069390154853, guid: c84a4402c0e8f754a998994f30340806, type: 3}
-  headRightSprite: {fileID: 7587527173961072947, guid: 94afb425b831dfb4681375433fe4c35e, type: 3}
-  orientHeadToDirection: 0
+  bodyHorizontalSprite: {fileID: 5183476676852997877, guid: 4e3e8afe41701724a9fadae8b941ee0d, type: 3}
+  bodyVerticalSprite: {fileID: -8697133744877224016, guid: f55e44714ef7214408af6adb5706d27d, type: 3}
+  bodyTopLeftSprite: {fileID: 2999098643290886539, guid: ee1f745b8b79f874999f8f2050517c76, type: 3}
+  bodyTopRightSprite: {fileID: -4986953961950147090, guid: 67fcf1770f209ca40acf800ee444da1f, type: 3}
+  bodyBottomLeftSprite: {fileID: 8171884408360701465, guid: 3c05229c7af355342a74f9ae658349cf, type: 3}
+  bodyBottomRightSprite: {fileID: -5512783819148346509, guid: a2b1a7befcbabc045b7d0faeea83bea7, type: 3}
+  tailUpSprite: {fileID: 2750249231403333431, guid: f6c05687b5c01934b8db0b5454a4632f, type: 3}
+  tailDownSprite: {fileID: -444241385568439413, guid: 3b106e3b19af1a64ca0a4d6bdbd49625, type: 3}
+  tailLeftSprite: {fileID: -2542272835747916194, guid: b0daf6dbbf708e44bbcfd7be0dbc3933, type: 3}
+  tailRightSprite: {fileID: -6108097152939252179, guid: 1f947989bc0c52b499d19d81e843050c, type: 3}
+  headUpSprite: {fileID: -3252757596025353577, guid: 66bfca259c8193c4da59738f082026bb, type: 3}
+  headDownSprite: {fileID: -6854801067047936884, guid: 0832b5a7388523d449fe0fe0492a4bb3, type: 3}
+  headLeftSprite: {fileID: -6702244069390154853, guid: c95c06aa1e6c45a4286745c7b0065a9d, type: 3}
+  headRightSprite: {fileID: 7587527173961072947, guid: 3e7a764ac2b53a44abb7b544f3cfb716, type: 3}
+  orientHeadToDirection: 1
   headTurnSmoothing: 20
   pulseHead: 0
   headPulseAmplitude: 0.045
@@ -1296,7 +1303,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7587527173961072947, guid: 94afb425b831dfb4681375433fe4c35e, type: 3}
+  m_Sprite: {fileID: 7587527173961072947, guid: 3e7a764ac2b53a44abb7b544f3cfb716, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1586,4 +1593,3 @@ SceneRoots:
   - {fileID: 28026903}
   - {fileID: 220766754}
   - {fileID: 1467052672}
-

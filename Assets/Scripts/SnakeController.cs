@@ -7,6 +7,7 @@ public class SnakeController : MonoBehaviour
     [Header("Start Setup")]
     [SerializeField] private Vector2Int startGridPosition = new Vector2Int(10, 10);
     [SerializeField] private Vector2Int startDirection = Vector2Int.right;
+    [SerializeField] [Min(1)] private int startLength = 1;
 
     [Header("Body Visuals")]
     [SerializeField] private bool tintBodySegments = false;
@@ -17,6 +18,7 @@ public class SnakeController : MonoBehaviour
     [SerializeField] private bool taperBodyTowardsTail = true;
     [SerializeField] private int bodySortingOrderOffset = -1;
     [SerializeField] [Min(1f)] private float cornerSegmentScaleMultiplier = 1.02f;
+    [SerializeField] private bool autoNormalizeBodyThickness = true;
     [SerializeField] private bool useDirectionalSprites = true;
     [SerializeField] private Sprite bodyHorizontalSprite;
     [SerializeField] private Sprite bodyVerticalSprite;
@@ -36,6 +38,8 @@ public class SnakeController : MonoBehaviour
     [SerializeField] private Sprite headRightSprite;
     [SerializeField] private bool orientHeadToDirection = true;
     [SerializeField] private float headTurnSmoothing = 20f;
+    [SerializeField] private bool autoNormalizeHeadSize = true;
+    [SerializeField] [Min(0.1f)] private float headScaleMultiplier = 1.08f;
     [SerializeField] private bool pulseHead = true;
     [SerializeField] private float headPulseAmplitude = 0.05f;
     [SerializeField] private float headPulseSpeed = 7f;
@@ -56,6 +60,10 @@ public class SnakeController : MonoBehaviour
     private SpriteRenderer headSpriteRenderer;
     private Vector3 baseHeadScale;
     private Sprite defaultHeadSprite;
+    private float bodyThicknessReference = 1f;
+    private float bodyLengthReference = 1f;
+    private float gridCellWorldSize = 1f;
+    private float currentHeadNormalization = 1f;
     private float headFacingAngle;
     private float blinkEndsAtTime;
     private float nextBlinkStartTime;
@@ -71,6 +79,9 @@ public class SnakeController : MonoBehaviour
 
         baseHeadScale = transform.localScale;
         defaultHeadSprite = headSpriteRenderer != null ? headSpriteRenderer.sprite : null;
+        RefreshBodyThicknessReference();
+        RefreshGridCellWorldSize();
+        RefreshHeadNormalization();
         headFacingAngle = DirectionToAngle(startDirection);
         ScheduleNextBlink();
 
@@ -87,12 +98,18 @@ public class SnakeController : MonoBehaviour
         ClearBodySegments();
         occupiedCells.Clear();
         occupiedCells.Add(currentGridPosition);
+        int initialLength = Mathf.Max(1, startLength);
+        for (int i = 1; i < initialLength; i++)
+        {
+            occupiedCells.Add(currentGridPosition - currentDirection * i);
+        }
 
         transform.localScale = baseHeadScale;
         headFacingAngle = DirectionToAngle(currentDirection);
         transform.rotation = UseDirectionalHeadSprites() ? Quaternion.identity : Quaternion.Euler(0f, 0f, headFacingAngle);
         ApplyHeadSprite(currentDirection);
         transform.position = GridToWorld(currentGridPosition);
+        UpdateBodySegments();
     }
 
     private void Update()
@@ -180,6 +197,11 @@ public class SnakeController : MonoBehaviour
 
     private void TrySetNextDirection(Vector2Int requestedDirection)
     {
+        if (gameManager != null && gameManager.AreControlsReversed())
+        {
+            requestedDirection = -requestedDirection;
+        }
+
         // Disallow instant 180-degree turns.
         if (requestedDirection == -currentDirection)
         {
@@ -309,10 +331,14 @@ public class SnakeController : MonoBehaviour
             int cellIndex = i + 1;
             if (IsCornerCell(cellIndex))
             {
-                targetScale *= Mathf.Max(1f, cornerSegmentScaleMultiplier);
+                targetScale *= Mathf.Max(0.01f, cornerSegmentScaleMultiplier);
             }
 
-            bodySegments[i].localScale = Vector3.one * targetScale;
+            Sprite segmentSprite = i < bodySegmentRenderers.Count && bodySegmentRenderers[i] != null
+                ? bodySegmentRenderers[i].sprite
+                : null;
+            float normalization = GetBodyThicknessNormalization(segmentSprite);
+            bodySegments[i].localScale = Vector3.one * targetScale * normalization;
 
             if (tintBodySegments && i < bodySegmentRenderers.Count && bodySegmentRenderers[i] != null)
             {
@@ -395,7 +421,11 @@ public class SnakeController : MonoBehaviour
             float amplitude = Mathf.Max(0f, headPulseAmplitude);
             float speed = Mathf.Max(0f, headPulseSpeed);
             float pulse = 1f + Mathf.Sin(Time.time * speed) * amplitude;
-            transform.localScale = baseHeadScale * pulse;
+            transform.localScale = baseHeadScale * currentHeadNormalization * Mathf.Max(0.1f, headScaleMultiplier) * pulse;
+        }
+        else
+        {
+            transform.localScale = baseHeadScale * currentHeadNormalization * Mathf.Max(0.1f, headScaleMultiplier);
         }
 
         if (usesDirectionalHead || blinkHeadSprite == null)
@@ -431,10 +461,12 @@ public class SnakeController : MonoBehaviour
         if (!TryGetDirectionalHeadSprite(direction, out Sprite directionalHeadSprite))
         {
             headSpriteRenderer.sprite = defaultHeadSprite;
+            RefreshHeadNormalization();
             return false;
         }
 
         headSpriteRenderer.sprite = directionalHeadSprite;
+        RefreshHeadNormalization();
         return true;
     }
 
@@ -627,6 +659,11 @@ public class SnakeController : MonoBehaviour
 
     private Sprite GetFallbackBodySprite()
     {
+        if (bodySpriteOverride != null)
+        {
+            return bodySpriteOverride;
+        }
+
         if (bodyHorizontalSprite != null)
         {
             return bodyHorizontalSprite;
@@ -637,11 +674,6 @@ public class SnakeController : MonoBehaviour
             return bodyVerticalSprite;
         }
 
-        if (bodySpriteOverride != null)
-        {
-            return bodySpriteOverride;
-        }
-
         if (headSpriteRenderer != null && headSpriteRenderer.sprite != null)
         {
             return headSpriteRenderer.sprite;
@@ -650,10 +682,164 @@ public class SnakeController : MonoBehaviour
         return defaultHeadSprite;
     }
 
+    private void RefreshBodyThicknessReference()
+    {
+        float horizontalThickness = GetExpectedStraightThickness(bodyHorizontalSprite, true);
+        float verticalThickness = GetExpectedStraightThickness(bodyVerticalSprite, false);
+        float horizontalLength = GetExpectedStraightLength(bodyHorizontalSprite, true);
+        float verticalLength = GetExpectedStraightLength(bodyVerticalSprite, false);
+
+        if (horizontalThickness > 0f && verticalThickness > 0f)
+        {
+            bodyThicknessReference = (horizontalThickness + verticalThickness) * 0.5f;
+        }
+        else if (horizontalThickness > 0f)
+        {
+            bodyThicknessReference = horizontalThickness;
+        }
+        else if (verticalThickness > 0f)
+        {
+            bodyThicknessReference = verticalThickness;
+        }
+        else
+        {
+            bodyThicknessReference = 1f;
+        }
+
+        if (horizontalLength > 0f && verticalLength > 0f)
+        {
+            bodyLengthReference = (horizontalLength + verticalLength) * 0.5f;
+        }
+        else if (horizontalLength > 0f)
+        {
+            bodyLengthReference = horizontalLength;
+        }
+        else if (verticalLength > 0f)
+        {
+            bodyLengthReference = verticalLength;
+        }
+        else
+        {
+            bodyLengthReference = 1f;
+        }
+    }
+
+    private void RefreshGridCellWorldSize()
+    {
+        if (gameManager == null)
+        {
+            gridCellWorldSize = 1f;
+            return;
+        }
+
+        Vector3 origin = gameManager.GridToWorldPosition(Vector2Int.zero);
+        Vector3 right = gameManager.GridToWorldPosition(Vector2Int.right);
+        float step = Vector3.Distance(origin, right);
+        gridCellWorldSize = step > 0.0001f ? step : 1f;
+    }
+
+    private float GetExpectedStraightThickness(Sprite sprite, bool horizontal)
+    {
+        if (sprite == null)
+        {
+            return 0f;
+        }
+
+        Vector2 size = sprite.bounds.size;
+        if (size.x <= 0.0001f || size.y <= 0.0001f)
+        {
+            return 0f;
+        }
+
+        return horizontal ? size.y : size.x;
+    }
+
+    private float GetExpectedStraightLength(Sprite sprite, bool horizontal)
+    {
+        if (sprite == null)
+        {
+            return 0f;
+        }
+
+        Vector2 size = sprite.bounds.size;
+        if (size.x <= 0.0001f || size.y <= 0.0001f)
+        {
+            return 0f;
+        }
+
+        return horizontal ? size.x : size.y;
+    }
+
+    private float GetBodyThicknessNormalization(Sprite sprite)
+    {
+        if (!autoNormalizeBodyThickness || sprite == null)
+        {
+            return 1f;
+        }
+
+        Vector2 size = sprite.bounds.size;
+        if (size.x <= 0.0001f || size.y <= 0.0001f)
+        {
+            return 1f;
+        }
+
+        float spriteThickness = Mathf.Min(size.x, size.y);
+        if (spriteThickness <= 0.0001f)
+        {
+            return 1f;
+        }
+
+        float spriteLength = Mathf.Max(size.x, size.y);
+        if (spriteLength <= 0.0001f)
+        {
+            return bodyThicknessReference / spriteThickness;
+        }
+
+        float targetLength = Mathf.Max(0.0001f, gridCellWorldSize);
+        float lengthScale = targetLength / spriteLength;
+
+        float thicknessRatio = bodyLengthReference > 0.0001f
+            ? bodyThicknessReference / bodyLengthReference
+            : 1f;
+        float targetThickness = targetLength * thicknessRatio;
+        float thicknessScale = bodyThicknessReference / spriteThickness;
+        if (targetThickness > 0.0001f)
+        {
+            thicknessScale = targetThickness / spriteThickness;
+        }
+
+        // Prefer a slightly larger scale so segments overlap cleanly without visible gaps.
+        return Mathf.Max(thicknessScale, lengthScale);
+    }
+
+    private void RefreshHeadNormalization()
+    {
+        currentHeadNormalization = 1f;
+
+        if (!autoNormalizeHeadSize || headSpriteRenderer == null || headSpriteRenderer.sprite == null)
+        {
+            return;
+        }
+
+        Vector2 size = headSpriteRenderer.sprite.bounds.size;
+        if (size.x <= 0.0001f || size.y <= 0.0001f)
+        {
+            return;
+        }
+
+        float spriteLength = Mathf.Max(size.x, size.y);
+        if (spriteLength <= 0.0001f)
+        {
+            return;
+        }
+
+        float targetLength = Mathf.Max(0.0001f, gridCellWorldSize);
+        currentHeadNormalization = targetLength / spriteLength;
+    }
+
     private bool UseDirectionalHeadSprites()
     {
-        return useDirectionalSprites
-            && headUpSprite != null
+        return headUpSprite != null
             && headDownSprite != null
             && headLeftSprite != null
             && headRightSprite != null;
@@ -678,4 +864,5 @@ public class SnakeController : MonoBehaviour
 
         return 0f;
     }
+
 }

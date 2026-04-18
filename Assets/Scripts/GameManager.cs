@@ -15,9 +15,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] [Min(0.02f)] private float minMoveInterval = 0.08f;
 
     [Header("Flow")]
+    [SerializeField] private GameMode gameMode = GameMode.Classic;
     [SerializeField] private bool waitForInputToStart = true;
     [SerializeField] private string startStatusMessage = "Press any key to start";
     [SerializeField] private string pausedStatusMessage = "Paused (P/Esc)";
+
+    [Header("Glitch Mode")]
+    [SerializeField] private float reverseControlsEverySeconds = 8f;
+    [SerializeField] private float reverseControlsDuration = 4f;
+    [SerializeField] private string glitchModeStatusMessage = "Glitch Mode";
+    [SerializeField] private string reversedControlsStatusMessage = "GLITCH: REVERSED";
 
     [Header("Camera")]
     [SerializeField] private bool fitCameraToBoardOnStart = true;
@@ -39,6 +46,9 @@ public class GameManager : MonoBehaviour
     private bool isGameOver;
     private bool hasGameStarted;
     private bool isPaused;
+    private bool areControlsReversed;
+    private float nextReverseControlsTime;
+    private float reverseControlsEndTime;
     private int score;
     private int bestScore;
     private LineRenderer boardBorderLine;
@@ -62,6 +72,12 @@ public class GameManager : MonoBehaviour
         isGameOver = false;
         hasGameStarted = !waitForInputToStart;
         isPaused = false;
+        if (GameModeSelection.HasSelectedMode)
+        {
+            gameMode = GameModeSelection.SelectedMode;
+        }
+        areControlsReversed = false;
+        ResetNextReverseControlsTime();
         score = 0;
         bestScore = LoadBestScore();
 
@@ -71,7 +87,7 @@ public class GameManager : MonoBehaviour
 
         gameUIController.SetScore(score);
         gameUIController.SetBestScore(bestScore);
-        UpdateFlowStatusLabel();
+        UpdateStatusLabel();
         gameUIController.ShowGameOver(false);
 
         SpawnFoodForCurrentSnake();
@@ -146,7 +162,8 @@ public class GameManager : MonoBehaviour
 
         isGameOver = true;
         isPaused = false;
-        UpdateFlowStatusLabel();
+        areControlsReversed = false;
+        UpdateStatusLabel();
         gameUIController.ShowGameOver(true);
     }
 
@@ -178,6 +195,16 @@ public class GameManager : MonoBehaviour
     public bool IsPaused()
     {
         return isPaused;
+    }
+
+    public bool IsGlitchMode()
+    {
+        return gameMode == GameMode.Glitch;
+    }
+
+    public bool AreControlsReversed()
+    {
+        return IsGlitchMode() && areControlsReversed;
     }
 
     public int GetBoardWidth()
@@ -341,7 +368,8 @@ public class GameManager : MonoBehaviour
             {
                 hasGameStarted = true;
                 isPaused = false;
-                UpdateFlowStatusLabel();
+                ResetNextReverseControlsTime();
+                UpdateStatusLabel();
             }
 
             return;
@@ -350,8 +378,16 @@ public class GameManager : MonoBehaviour
         if (keyboard.pKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame)
         {
             isPaused = !isPaused;
-            UpdateFlowStatusLabel();
+            UpdateStatusLabel();
+            return;
         }
+
+        if (!isPaused && IsGlitchMode() && keyboard.gKey.wasPressedThisFrame)
+        {
+            StartReverseControlsGlitch();
+        }
+
+        UpdateGlitchTimers();
     }
 
     private int LoadBestScore()
@@ -365,7 +401,49 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    private void UpdateFlowStatusLabel()
+    private void UpdateGlitchTimers()
+    {
+        if (!IsGlitchMode() || !IsGameplayActive())
+        {
+            return;
+        }
+
+        if (areControlsReversed)
+        {
+            if (Time.time >= reverseControlsEndTime)
+            {
+                areControlsReversed = false;
+                ResetNextReverseControlsTime();
+                UpdateStatusLabel();
+            }
+
+            return;
+        }
+
+        if (Time.time >= nextReverseControlsTime)
+        {
+            StartReverseControlsGlitch();
+        }
+    }
+
+    private void StartReverseControlsGlitch()
+    {
+        if (!IsGlitchMode())
+        {
+            return;
+        }
+
+        areControlsReversed = true;
+        reverseControlsEndTime = Time.time + Mathf.Max(0.1f, reverseControlsDuration);
+        UpdateStatusLabel();
+    }
+
+    private void ResetNextReverseControlsTime()
+    {
+        nextReverseControlsTime = Time.time + Mathf.Max(0.1f, reverseControlsEverySeconds);
+    }
+
+    private void UpdateStatusLabel()
     {
         if (gameUIController == null)
         {
@@ -378,19 +456,33 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        string statusMessage = string.Empty;
+
         if (!hasGameStarted)
         {
-            gameUIController.SetStatusMessage(startStatusMessage);
-            return;
+            statusMessage = startStatusMessage;
         }
-
-        if (isPaused)
+        else if (isPaused)
         {
-            gameUIController.SetStatusMessage(pausedStatusMessage);
-            return;
+            statusMessage = pausedStatusMessage;
         }
 
-        gameUIController.ClearStatusMessage();
+        if (IsGlitchMode())
+        {
+            string glitchStatus = areControlsReversed ? reversedControlsStatusMessage : glitchModeStatusMessage;
+            statusMessage = string.IsNullOrWhiteSpace(statusMessage)
+                ? glitchStatus
+                : statusMessage + "\n" + glitchStatus;
+        }
+
+        if (string.IsNullOrWhiteSpace(statusMessage))
+        {
+            gameUIController.ClearStatusMessage();
+        }
+        else
+        {
+            gameUIController.SetStatusMessage(statusMessage);
+        }
     }
 
     private void OnDrawGizmosSelected()
